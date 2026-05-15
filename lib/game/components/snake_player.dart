@@ -172,7 +172,7 @@ class SnakePlayer extends PositionComponent with HasGameRef<SnakeHunterGame>, Co
       );
       
       // Particles
-      gameRef.add(ParticleService.createEatParticle(other.position, gameRef.gameState.currentSkin.headColor));
+      gameRef.add(gameRef.particlePool.get(other.position, gameRef.gameState.currentSkin.headColor));
 
       add(ScaleEffect.by(Vector2.all(1.2), EffectController(duration: 0.1, reverseDuration: 0.1)));
     }

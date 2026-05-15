@@ -1,31 +1,27 @@
 /**
- * PERFORMANCE_RULES.do.js - Optimization Guidelines (Phase 2)
+ * PERFORMANCE_RULES.do.js - Hardware limits and optimization targets
  * Project: SNAKE HUNTER
  */
 
 const PerformanceRules = {
-  maxAssetSizeMB: 5,
-  targetFPS: 60,
-  optimizationTechniques: [
-    "SpriteAtlas for all textures (Ready)",
-    "Object Pooling for prey components (Active)",
-    "Viewfinder MoveEffect for shake (Low CPU cost)",
-    "Manual Render caching for static map elements",
-    "Minimize Widget rebuilds via Consumer/Watch precision",
-    "Compressed audio (WebP/Ogg target)"
-  ],
-  checkpoints: {
-    memoryUsage: "< 100MB RAM",
-    drawCalls: "< 50 per frame",
-    rebuildCount: "HUD only on state change"
+  targets: {
+    flagship: "60 FPS (Locked)",
+    midRange: "60 FPS (Stable)",
+    lowEnd: "Stable Gameplay (45+ FPS)",
+    thermalLimit: "42°C",
+    maxRamUsage: "120MB (Enterprise Cap)"
   },
-  androidTestResults: {
-    device: "Redmi Note 8",
-    status: "STABLE (Verified on Physical Device)",
-    apkSize: "16.7MB (Release Build)",
-    fps: "Solid 60 FPS (Impeller/Vulkan enabled)",
-    memory: "68MB (Peak usage recorded)",
-    thermal: "Cool (Tested for 10 mins)"
+  optimizationApplied: {
+    objectPooling: "Prey, Particles, Effects",
+    spatialPartitioning: "Collision Grid Active",
+    adaptiveQuality: "JuiceService Auto-Scaling",
+    rendering: "Repaint Boundaries & Smart Culling",
+    build: "R8 Minification & Resource Shrinking"
+  },
+  lowEndHardwareProfile: {
+    particleMultiplier: 0.3,
+    disableHeavyAnimations: true,
+    simplifiedUIEffects: true
   }
 };
 

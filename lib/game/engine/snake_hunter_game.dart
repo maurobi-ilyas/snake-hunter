@@ -11,6 +11,7 @@ import '../components/snake_player.dart';
 import '../components/environment.dart';
 import '../components/prey_animal.dart';
 import '../../services/prey_pool.dart';
+import '../../services/particle_pool.dart';
 
 class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCollisionDetection, TapCallbacks {
   final GameState gameState;
@@ -18,6 +19,7 @@ class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCo
   late Environment environment;
   late JoystickComponent joystick;
   final PreyPool preyPool = PreyPool();
+  final ParticlePool particlePool = ParticlePool();
   double _timerAcc = 0;
   double elapsedTime = 0;
   final CollisionGrid collisionGrid = CollisionGrid();
