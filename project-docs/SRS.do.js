@@ -38,8 +38,10 @@ const SRS = {
     skinSystem: "Modular texture swapping architecture implemented.",
     mapSystem: "Biomes and maps supported via configuration.",
     progression: "Achievement and Mission state machine included.",
-    saveSystem: "Scalable JSON-based persistence with SaveSystem service.",
-    objectPooling: "Mandatory for all entities (Prey, Particles) to ensure 60 FPS."
+    saveSystem: "Enterprise-grade auto-save with corruption recovery.",
+    objectPooling: "Mandatory for all entities (Prey, Particles) to ensure 60 FPS.",
+    antiLagEngine: "Real-time performance monitoring and adaptive AI updates.",
+    errorHandling: "Fault-tolerant services with safe fallbacks."
   }
 };
 

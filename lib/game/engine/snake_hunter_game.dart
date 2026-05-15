@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import '../../services/game_state.dart';
+import '../../services/performance_monitor.dart';
+import 'physics/collision_grid.dart';
 import '../components/snake_player.dart';
 import '../components/environment.dart';
 import '../components/prey_animal.dart';
@@ -18,6 +20,7 @@ class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCo
   final PreyPool preyPool = PreyPool();
   double _timerAcc = 0;
   double elapsedTime = 0;
+  final CollisionGrid collisionGrid = CollisionGrid();
 
   SnakeHunterGame(this.gameState);
 
@@ -62,6 +65,7 @@ class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCo
   void update(double dt) {
     super.update(dt);
     elapsedTime += dt;
+    PerformanceMonitor.recordFrame(dt);
     
     if (gameState.status == GameStatus.playing) {
       _timerAcc += dt;

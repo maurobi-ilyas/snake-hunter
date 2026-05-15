@@ -34,7 +34,12 @@ class PreyAnimal extends SpriteComponent with HasGameRef<SnakeHunterGame>, Colli
     super.update(dt);
     if (state == AIState.eaten) return;
 
-    _updateAI(dt);
+    // Adaptive Update Frequency
+    final distanceToSnake = position.distanceTo(gameRef.snake.position);
+    if (distanceToSnake < 300 || _stateTimer <= 0) {
+      _updateAI(dt);
+    }
+    
     position += velocity * dt;
 
     // Boundary check

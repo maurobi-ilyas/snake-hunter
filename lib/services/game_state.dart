@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'leaderboard_service.dart';
 import '../core/skin_system.dart';
 import '../core/mission_system.dart';
+import 'save_system.dart';
 
 enum GameStatus { menu, playing, paused, gameOver }
 
@@ -54,12 +55,23 @@ class GameState with ChangeNotifier {
     if (newLevel > _level) {
       _level = newLevel;
       _timeLeft += 10; // Bonus time on level up
+      _autoSave();
     }
 
     if (_score > _highScore) {
       _highScore = _score;
+      _autoSave();
     }
     notifyListeners();
+  }
+
+  void _autoSave() {
+    SaveSystem.save(SaveData(
+      highScore: _highScore,
+      isSoundOn: _isSoundOn,
+      isMusicOn: _isMusicOn,
+      playerLevel: _level,
+    ));
   }
 
   void setStatus(GameStatus status) {

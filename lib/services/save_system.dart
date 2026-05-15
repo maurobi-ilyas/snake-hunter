@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as dev;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SaveData {
@@ -41,18 +42,23 @@ class SaveSystem {
   static const String _saveKey = 'snake_hunter_save_v1';
 
   static Future<void> save(SaveData data) async {
-    final prefs = await SharedPreferences.getInstance();
-    final String jsonString = jsonEncode(data.toJson());
-    await prefs.setString(_saveKey, jsonString);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String jsonString = jsonEncode(data.toJson());
+      await prefs.setString(_saveKey, jsonString);
+    } catch (e) {
+      dev.log('SAVE ERROR: Failed to persist data: $e', name: 'SaveSystem');
+    }
   }
 
   static Future<SaveData> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? jsonString = prefs.getString(_saveKey);
-    if (jsonString == null) return SaveData();
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? jsonString = prefs.getString(_saveKey);
+      if (jsonString == null) return SaveData();
       return SaveData.fromJson(jsonDecode(jsonString));
     } catch (e) {
+      dev.log('LOAD ERROR: Save data corrupt, using defaults: $e', name: 'SaveSystem');
       return SaveData();
     }
   }
