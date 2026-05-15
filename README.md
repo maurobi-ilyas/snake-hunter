@@ -2,36 +2,54 @@
 
 A modern, lightweight, and addictive Flutter game built with the **Flame Engine**. 
 
-## 🌟 Features
-- **Offline Gameplay**: No internet required.
-- **Modern Aesthetics**: Soft colorful pastel palette with premium glassmorphism UI.
-- **Smooth Animations**: Powered by `flutter_animate` and Flame's internal engine.
-- **Dynamic AI**: Prey animals (Rats, Rabbits, Frogs) that react and flee when the snake approaches.
-- **Flexible Snake**: Realistic movement with a following body segment system.
-- **Combo System**: Multiply your score by catching prey in quick succession.
-- **Survival Mode**: Race against the clock to hunt as many animals as possible.
-- **Local Leaderboard**: Track your best scores locally on your device.
+# 🧠 PROJECT DOCS SYSTEM
+The folder `/project-docs` serves as the **Central Brain System** for this project. All development decisions, feature implementations, and optimizations must strictly adhere to the rules and states documented within:
+- `SRS.do.js`: Software Requirements
+- `GAME_RULES.do.js`: Gameplay Balancing
+- `PERFORMANCE_RULES.do.js`: Optimization Guidelines
+- `CURRENT_STATE.do.js`: Development Status
+- `AI_MEMORY.do.js`: AI Context & Consistency
 
-## 🏗️ Architecture
-- **Clean Architecture**: Modular structure for scalability and maintainability.
-- **Flame Engine**: High-performance 2D rendering.
-- **Provider**: Robust state management for score, levels, and game status.
-- **Optimized**: Designed for smooth performance even on low-end devices.
+This ensures that the project remains consistent, performant, and scalable across all development phases.
+
+# 🚀 IMPORTANT DEVELOPMENT RULES
+To maintain premium mobile quality, all development must follow these rules:
+1. **Project-Docs is the Brain**: Always read and update `/project-docs` before and after coding.
+2. **Android Physical Testing is Mandatory**: Use `flutter run --release` on a real Android device for performance validation.
+3. **No Chrome-First Development**: Chrome is only for minor debugging; focus on Android rendering and touch response.
+4. **Pre-Git Check**: Verify FPS stability, zero touch lag, and small APK size before any Git commit.
+5. **Clean Architecture**: Follow the established modular patterns in the `/lib` folder.
+
+## 🌟 New in Phase 2
+- **Modern Analog Joystick**: Smooth 360° movement with natural acceleration and deceleration.
+- **Micro-Animations**: Expressive snake with tongue action and eye blinking.
+- **Game Feel (Juiciness)**: 
+    - **Camera Feedback**: Viewfinder shake and zoom effects on successful hunts.
+    - **Floating Scores**: Real-time visual feedback for points earned.
+    - **Elastic UI**: Level-up and combo indicators with bouncy animations.
+- **Advanced AI**: 
+    - **Panic Mode**: Prey animals react differently when the snake is within their detection radius.
+    - **Unique Patterns**: Rabbits zig-zag, Frogs jump, and Rats run straight.
+- **Level Progression**: 3 levels of increasing difficulty with time bonuses and speed multipliers.
+- **Audio Service**: Dedicated system for compressed SFX and BGM (ready for assets).
+- **Settings**: Modern modal for toggling sound and music.
+
+## 🏗️ Technical Highlights
+- **Prey Pooling**: Object reuse system for animals to minimize memory allocations.
+- **Adaptive Icons**: Configured Android adaptive icon support for a premium Play Store look.
+- **State Management**: Optimized Provider-based state for zero-lag HUD updates.
+- **Clean Architecture**: Modular structure maintained for scalability.
 
 ## 🕹️ Controls
-- **Touch/Tap**: Tap anywhere on the screen to make the snake move towards that point.
-- **Eat**: Collide with animals to eat them and gain points/time.
+- **Virtual Joystick**: Use the semi-transparent joystick on the bottom-left to move.
+- **Settings**: Tap the settings button on the main menu to toggle audio.
 
-## 🚀 Optimization
-- **Sprite Batching**: Efficient rendering of multiple components.
-- **Object Pooling**: Managed life cycle for prey and particles.
-- **Compressed Assets**: Minimal APK size target.
-
-## 🛠️ Installation
-1. Ensure you have Flutter installed.
-2. Clone this repository.
-3. Run `flutter pub get`.
-4. Run `flutter run`.
+## 🚀 Optimization Roadmap
+- [x] Object Pooling
+- [x] SpriteAtlas Ready
+- [x] Low Repaint Boundary
+- [ ] Custom Sprite Sheet Integration
+- [ ] Release Mode Performance Profiling
 
 ---
-*Created for the modern mobile gaming experience.*
+*Developed for a premium casual mobile gaming experience.*

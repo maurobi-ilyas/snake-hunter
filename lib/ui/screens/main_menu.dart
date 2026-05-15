@@ -5,6 +5,7 @@ import '../../core/constants.dart';
 import '../../services/game_state.dart';
 import '../../game/snake_hunter_game.dart';
 import '../widgets/game_overlay.dart';
+import '../widgets/settings_modal.dart';
 import 'package:flame/game.dart';
 
 class MainMenu extends StatelessWidget {
@@ -80,7 +81,10 @@ class MainMenu extends StatelessWidget {
                 _MenuButton(
                   text: 'SETTINGS',
                   onPressed: () {
-                    // Show settings modal
+                    showDialog(
+                      context: context,
+                      builder: (context) => const SettingsModal(),
+                    );
                   },
                 ).animate().fadeIn(delay: 1000.ms).scale(),
                 

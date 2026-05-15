@@ -123,7 +123,7 @@ class GameOverlay extends StatelessWidget {
                       letterSpacing: 2.0,
                     ),
                   ),
-                ),
+                ).animate(key: ValueKey(state.level)).scale(duration: 400.ms, curve: Curves.elasticOut),
               ],
             ),
           ),

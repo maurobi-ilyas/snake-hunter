@@ -14,6 +14,7 @@ abstract class PreyAnimal extends PositionComponent with HasGameRef<SnakeHunterG
   Vector2 velocity = Vector2.zero();
   final math.Random _random = math.Random();
   double _stateTimer = 0;
+  double _wobbleTimer = 0;
 
   @override
   Future<void> onLoad() async {
@@ -33,8 +34,11 @@ abstract class PreyAnimal extends PositionComponent with HasGameRef<SnakeHunterG
     if (distanceToSnake < fleeDistance) {
       state = PreyState.panic;
       _fleeFrom(snake.position);
+      _wobbleTimer += dt * 10;
     } else {
+      state = PreyState.wandering;
       _updateWander(dt);
+      _wobbleTimer = 0;
     }
 
     position.add(velocity * dt);
@@ -72,6 +76,9 @@ abstract class PreyAnimal extends PositionComponent with HasGameRef<SnakeHunterG
 class Rat extends PreyAnimal {
   @override
   void render(Canvas canvas) {
+    if (state == PreyState.panic) {
+      canvas.rotate(math.sin(_wobbleTimer) * 0.2);
+    }
     final paint = Paint()..color = Colors.grey;
     canvas.drawOval(size.toRect(), paint);
     
@@ -92,6 +99,9 @@ class Rabbit extends PreyAnimal {
 
   @override
   void render(Canvas canvas) {
+    if (state == PreyState.panic) {
+      canvas.rotate(math.sin(_wobbleTimer) * 0.3);
+    }
     final paint = Paint()..color = const Color(0xFFF8BBD0); // Pastel Pink
     canvas.drawOval(size.toRect(), paint);
     
@@ -117,6 +127,9 @@ class Frog extends PreyAnimal {
 
   @override
   void render(Canvas canvas) {
+    if (state == PreyState.panic) {
+      canvas.rotate(math.sin(_wobbleTimer) * 0.2);
+    }
     final paint = Paint()..color = const Color(0xFF4DB6AC); // Pastel Teal
     canvas.drawCircle(Offset(size.x / 2, size.y / 2), size.x / 2, paint);
     

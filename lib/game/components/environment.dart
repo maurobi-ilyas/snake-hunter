@@ -1,11 +1,14 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 class Environment extends Component with HasGameRef {
   final List<Offset> _grassPositions = [];
   final List<Offset> _bushPositions = [];
   final math.Random _random = math.Random();
+  
+  ui.Picture? _cachedPicture;
 
   @override
   Future<void> onLoad() async {
@@ -22,33 +25,50 @@ class Environment extends Component with HasGameRef {
         _random.nextDouble() * gameRef.canvasSize.y,
       ));
     }
+    
+    _cacheDecorations();
   }
 
-  @override
-  void render(Canvas canvas) {
+  void _cacheDecorations() {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    
     // Draw background
     final paint = Paint()
       ..color = const Color(0xFFE8F5E9)
       ..style = PaintingStyle.fill;
-    
     canvas.drawRect(gameRef.canvasSize.toRect(), paint);
     
-    // Draw Grass (Simple V shape)
+    // Draw Grass
     final grassPaint = Paint()
       ..color = const Color(0xFFC8E6C9)
       ..strokeWidth = 2;
-    
     for (final pos in _grassPositions) {
       canvas.drawLine(pos, pos + const Offset(-5, -10), grassPaint);
       canvas.drawLine(pos, pos + const Offset(5, -10), grassPaint);
     }
     
-    // Draw Bushes (Simple clouds)
+    // Draw Bushes
     final bushPaint = Paint()..color = const Color(0xFFA5D6A7);
     for (final pos in _bushPositions) {
       canvas.drawCircle(pos, 15, bushPaint);
       canvas.drawCircle(pos + const Offset(10, 5), 12, bushPaint);
       canvas.drawCircle(pos + const Offset(-10, 5), 12, bushPaint);
     }
+    
+    _cachedPicture = recorder.endRecording();
+  }
+
+  @override
+  void render(Canvas canvas) {
+    if (_cachedPicture != null) {
+      canvas.drawPicture(_cachedPicture!);
+    }
+  }
+
+  @override
+  void onRemove() {
+    _cachedPicture?.dispose();
+    super.onRemove();
   }
 }

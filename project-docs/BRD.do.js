@@ -12,11 +12,12 @@ const BRD = {
     "Premium modern visual style",
     "Addictive hunt-and-eat mechanics"
   ],
-  monetization: "None (Offline Premium Experience)",
+  monetization: "None (Premium Offline Casual Experience)",
   successMetrics: [
-    "Stable 60 FPS",
-    "Small APK size (< 20MB)",
-    "High user retention"
+    "Stable 60 FPS on Android",
+    "Small APK size (< 15MB optimized)",
+    "Dribbble-level UI/UX satisfaction",
+    "Zero-lag touch responsiveness"
   ]
 };
 

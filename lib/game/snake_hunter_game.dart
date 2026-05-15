@@ -6,11 +6,15 @@ import 'dart:math' as math;
 import '../services/game_state.dart';
 import 'components/snake_player.dart';
 import 'components/environment.dart';
+import 'components/prey_animal.dart';
+import 'prey_pool.dart';
 
 class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCollisionDetection, TapCallbacks {
   final GameState gameState;
   late SnakePlayer snake;
   late Environment environment;
+  late JoystickComponent joystick;
+  final PreyPool preyPool = PreyPool();
   double _timerAcc = 0;
 
   SnakeHunterGame(this.gameState);
@@ -25,18 +29,21 @@ class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCo
     snake = SnakePlayer();
     add(snake);
 
+    // Setup Joystick
+    final knobPaint = Paint()..color = Colors.white.withOpacity(0.5);
+    final backgroundPaint = Paint()..color = Colors.white.withOpacity(0.2);
+    joystick = JoystickComponent(
+      knob: CircleComponent(radius: 20, paint: knobPaint),
+      background: CircleComponent(radius: 50, paint: backgroundPaint),
+      margin: const EdgeInsets.only(left: 40, bottom: 40),
+    );
+    add(joystick);
+
     // Spawn some prey
     final random = math.Random();
     for (int i = 0; i < 8; i++) {
-      PreyAnimal prey;
       int type = random.nextInt(3);
-      if (type == 0) {
-        prey = Rat();
-      } else if (type == 1) {
-        prey = Rabbit();
-      } else {
-        prey = Frog();
-      }
+      final prey = preyPool.get(type);
       prey.position = Vector2(
         random.nextDouble() * size.x,
         random.nextDouble() * size.y,
@@ -48,11 +55,6 @@ class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCo
     camera.follow(snake);
   }
 
-  @override
-  void onTapDown(TapDownEvent event) {
-    super.onTapDown(event);
-    snake.moveTowards(event.localPosition);
-  }
 
   @override
   void update(double dt) {

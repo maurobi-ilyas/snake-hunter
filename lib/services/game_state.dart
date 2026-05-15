@@ -11,6 +11,8 @@ class GameState with ChangeNotifier {
   int _combo = 0;
   DateTime? _lastCatchTime;
   int _timeLeft = 60;
+  bool _isSoundOn = true;
+  bool _isMusicOn = true;
 
   int get score => _score;
   int get highScore => _highScore;
@@ -18,6 +20,8 @@ class GameState with ChangeNotifier {
   int get level => _level;
   int get combo => _combo;
   int get timeLeft => _timeLeft;
+  bool get isSoundOn => _isSoundOn;
+  bool get isMusicOn => _isMusicOn;
 
   void addScore(int points) {
     final now = DateTime.now();
@@ -29,6 +33,14 @@ class GameState with ChangeNotifier {
     _lastCatchTime = now;
 
     _score += (points * (1 + (_combo * 0.1))).toInt();
+    
+    // Level Up Check
+    int newLevel = (_score / 2000).floor() + 1;
+    if (newLevel > _level) {
+      _level = newLevel;
+      _timeLeft += 10; // Bonus time on level up
+    }
+
     if (_score > _highScore) {
       _highScore = _score;
     }
@@ -66,6 +78,16 @@ class GameState with ChangeNotifier {
 
   void nextLevel() {
     _level++;
+    notifyListeners();
+  }
+
+  void toggleSound() {
+    _isSoundOn = !_isSoundOn;
+    notifyListeners();
+  }
+
+  void toggleMusic() {
+    _isMusicOn = !_isMusicOn;
     notifyListeners();
   }
 

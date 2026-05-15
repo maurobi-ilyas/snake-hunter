@@ -1,37 +1,39 @@
 /**
- * SRS.do.js - Software Requirements Specification
+ * SRS.do.js - Software Requirements Specification (Phase 2 Update)
  * Project: SNAKE HUNTER
  */
 
 const SRS = {
-  gameplayLoop: "Player controls snake -> search for prey -> prey flee when approached -> catch/eat prey -> gain score -> progression (speed up).",
+  gameplayLoop: "Player controls snake via modern analog joystick -> hunt prey -> prey flee with unique AI patterns -> catch/eat -> gain score & time -> level up.",
   snakeBehavior: {
-    movement: "Smooth analog-style touch control. Flexible body following head path.",
-    animations: ["idle", "moving", "eating", "speedBoost", "happy"],
-    visuals: "Cute, modern cartoon style, expressive eyes."
+    movement: "Smooth analog-style control with natural acceleration. Body following logic optimized for segments.",
+    animations: ["idle", "moving", "eating", "tongueAction", "eyeBlinking"],
+    visuals: "Dynamic scaling, expressive animations, smooth segment transitions."
   },
   animalAI: {
-    states: ["idle", "wandering", "panic", "escaping", "hiding"],
-    fleeLogic: "When snake distance < threshold, trigger panic animation and move away from snake position.",
-    variants: ["rat", "chicken", "rabbit", "frog", "bird"]
+    states: ["idle", "wandering", "panic", "escaping"],
+    fleeLogic: {
+      detectionRadius: "Varies per animal (Rabbit: 200, Rat: 150)",
+      patterns: {
+        rat: "Direct escape",
+        rabbit: "Zig-zag escape",
+        frog: "Burst jump escape"
+      }
+    }
   },
-  scoringSystem: {
-    baseScore: 100,
-    comboMultiplier: "Increases with consecutive catches within short window.",
-    bonuses: ["speed catch", "perfect movement"]
+  levelProgression: {
+    level1: "Tutorial feel, slow animals, clear map.",
+    level2: "Increased speed, minor obstacles.",
+    level3: "Fast paced, multiple rare prey, score multiplier 2x."
   },
-  levelProgression: "Increasing speed of snake and animals, more obstacles, higher spawn rate of rare prey.",
-  uiBehavior: {
-    style: "Modern Glassmorphism, rounded corners, soft shadows, pastel colors.",
-    screens: ["Splash", "MainMenu", "GameHUD", "Pause", "Settings", "Leaderboard", "GameOver"]
+  optimization: {
+    techniques: ["Object Pooling", "Sprite Atlas", "Low-cost collision", "Manual paint caching"],
+    performanceTarget: "Solid 60 FPS on 2GB RAM devices."
   },
-  performanceRules: {
-    fpsTarget: 60,
-    maxAssetSize: "Small compressed assets (WebP/SVG)",
-    optimization: ["Sprite Batching", "Object Pooling", "Lazy Loading"]
-  },
-  touchInteraction: "Responsive virtual joystick or direct touch following.",
-  gameStateManagement: "Provider/ChangeNotifier for global state (score, settings, level)."
+  gameFeel: {
+    juiciness: ["Camera Shake", "Floating Scores", "Elastic UI Animations", "Particle Bursts"],
+    feedback: "Rewarding haptic (visual) feedback on every successful hunt."
+  }
 };
 
 module.exports = SRS;
