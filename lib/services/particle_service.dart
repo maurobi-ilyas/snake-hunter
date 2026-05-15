@@ -1,12 +1,14 @@
 import 'package:flame/components.dart';
 import 'package:flame/particles.dart';
 import 'package:flutter/material.dart';
+import 'juice_service.dart';
 
 class ParticleService {
   static Component createEatParticle(Vector2 position, Color color) {
+    final count = (15 * JuiceService.particleCountMultiplier).toInt();
     return ParticleSystemComponent(
       particle: Particle.generate(
-        count: 15,
+        count: count,
         lifespan: 0.8,
         generator: (i) => AcceleratedParticle(
           acceleration: Vector2(0, 100),

@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants.dart';
 import '../../services/game_state.dart';
+import '../../services/juice_service.dart';
 import '../../game/engine/snake_hunter_game.dart';
 import '../widgets/game_overlay.dart';
 import '../widgets/settings_modal.dart';
@@ -135,7 +136,10 @@ class _MenuButton extends StatelessWidget {
         ],
       ),
       child: ElevatedButton(
-        onPressed: onPressed,
+        onPressed: () {
+          JuiceService.buttonTap();
+          onPressed();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: primary ? GameColors.accent : Colors.white.withOpacity(0.9),
           foregroundColor: primary ? Colors.black87 : GameColors.primary,

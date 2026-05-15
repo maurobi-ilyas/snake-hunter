@@ -8,6 +8,7 @@ import 'prey_animal.dart';
 import 'floating_text.dart';
 import '../engine/snake_hunter_game.dart';
 import '../../services/particle_service.dart';
+import '../../services/juice_service.dart';
 
 class SnakePlayer extends PositionComponent with HasGameRef<SnakeHunterGame>, CollisionCallbacks {
   static const double baseSpeed = 220.0;
@@ -136,6 +137,9 @@ class SnakePlayer extends PositionComponent with HasGameRef<SnakeHunterGame>, Co
       other.removeFromParent();
       gameRef.gameState.addScore(100);
       currentLength = math.min(currentLength + 1, 50);
+      
+      // Haptic Feedback
+      JuiceService.success();
       
       // Floating Score
       gameRef.add(FloatingText('+100', position.clone()));

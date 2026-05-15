@@ -80,9 +80,18 @@ class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCo
         paused = true;
       }
 
-      // Dynamic Camera Zoom
-      double targetZoom = 1.0 + (gameState.combo * 0.05);
+      // Smart Camera System
+      final targetZoom = 1.0 + (gameState.combo * 0.05);
       camera.viewfinder.zoom = ui.lerpDouble(camera.viewfinder.zoom, targetZoom, dt * 2) ?? 1.0;
+      
+      // Smooth Follow with Look-ahead
+      final targetPosition = snake.position + (snake.velocity * 0.2);
+      camera.viewfinder.position = ui.lerpDouble(camera.viewfinder.position.x, targetPosition.x, dt * 3) != null 
+          ? Vector2(
+              ui.lerpDouble(camera.viewfinder.position.x, targetPosition.x, dt * 3)!,
+              ui.lerpDouble(camera.viewfinder.position.y, targetPosition.y, dt * 3)!,
+            )
+          : targetPosition;
     }
   }
 

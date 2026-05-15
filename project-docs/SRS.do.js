@@ -41,7 +41,9 @@ const SRS = {
     saveSystem: "Enterprise-grade auto-save with corruption recovery.",
     objectPooling: "Mandatory for all entities (Prey, Particles) to ensure 60 FPS.",
     antiLagEngine: "Real-time performance monitoring and adaptive AI updates.",
-    errorHandling: "Fault-tolerant services with safe fallbacks."
+    errorHandling: "Fault-tolerant services with safe fallbacks.",
+    aaaPolish: "Premium haptics, micro-interactions, and soft-easing camera.",
+    adaptiveQuality: "Automatic graphics scaling for low-end device stability."
   }
 };
 
