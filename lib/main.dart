@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import 'game/engine/snake_hunter_game.dart';
 import 'ui/screens/main_menu.dart';
 import 'services/game_state.dart';
+import 'services/error_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  ErrorService.initialize();
   runApp(
     ChangeNotifierProvider(
       create: (_) => GameState(),
