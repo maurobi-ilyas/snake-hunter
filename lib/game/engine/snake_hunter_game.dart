@@ -21,6 +21,7 @@ class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCo
   double _timerAcc = 0;
   double elapsedTime = 0;
   final CollisionGrid collisionGrid = CollisionGrid();
+  double timeScale = 1.0;
 
   SnakeHunterGame(this.gameState);
 
@@ -63,7 +64,8 @@ class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCo
 
   @override
   void update(double dt) {
-    super.update(dt);
+    final scaledDt = dt * timeScale;
+    super.update(scaledDt);
     elapsedTime += dt;
     PerformanceMonitor.recordFrame(dt);
     
@@ -74,10 +76,13 @@ class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCo
         _timerAcc = 0;
       }
       
-      if (gameState.status == GameStatus.gameOver) {
-        overlays.add('GameOver');
-        overlays.remove('HUD');
-        paused = true;
+      if (gameState.timeLeft <= 0) {
+        // AAA Game Over Slowdown
+        timeScale = ui.lerpDouble(timeScale, 0.1, dt * 3) ?? 0.1;
+        if (timeScale < 0.2) {
+          gameState.setStatus(GameStatus.gameOver);
+          paused = true;
+        }
       }
 
       // Smart Camera System

@@ -45,7 +45,8 @@ const SRS = {
     aaaPolish: "Premium haptics, micro-interactions, and soft-easing camera.",
     adaptiveQuality: "Automatic graphics scaling for low-end device stability.",
     antiCrashSystem: "Global exception handling and fault-tolerant execution.",
-    masterReleaseReady: "Play Store metadata, adaptive icons, and optimized AAB setup."
+    masterReleaseReady: "Play Store metadata, adaptive icons, and optimized AAB setup.",
+    aaaGamePolish: "Satisfying movement (squash/stretch), smooth camera easing, and emotional game-over slowdown."
   }
 };
 

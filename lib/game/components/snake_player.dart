@@ -22,6 +22,11 @@ class SnakePlayer extends PositionComponent with HasGameRef<SnakeHunterGame>, Co
   bool _isTongueOut = false;
   double _blinkTimer = 0;
   bool _isBlinking = false;
+  
+  // AAA Polish state
+  double _squashAmount = 1.0;
+  double _stretchAmount = 1.0;
+  double _impactTimer = 0;
 
   SnakePlayer() {
     currentLength = initialLength;
@@ -55,7 +60,16 @@ class SnakePlayer extends PositionComponent with HasGameRef<SnakeHunterGame>, Co
 
     position.add(velocity * dt);
     
-    // Update body positions for segment following
+    // AAA Movement Squash & Stretch
+    final speedRatio = velocity.length / baseSpeed;
+    _stretchAmount = 1.0 + (speedRatio * 0.1);
+    _squashAmount = 1.0 - (speedRatio * 0.05);
+
+    // Impact Recovery
+    if (_impactTimer > 0) {
+      _impactTimer -= dt;
+      _stretchAmount *= 1.2;
+    }
     bodyPositions.insert(0, position.clone());
     if (bodyPositions.length > currentLength * 10) {
       bodyPositions.removeLast();
@@ -112,6 +126,9 @@ class SnakePlayer extends PositionComponent with HasGameRef<SnakeHunterGame>, Co
 
     // Render Head
     final headPaint = Paint()..color = skin.headColor;
+    
+    canvas.save();
+    canvas.scale(_stretchAmount, _squashAmount);
     canvas.drawCircle(Offset.zero, size.x / 2, headPaint);
     
     // Eyes
@@ -128,6 +145,7 @@ class SnakePlayer extends PositionComponent with HasGameRef<SnakeHunterGame>, Co
       canvas.drawLine(Offset(size.x * 0.1, -size.x * 0.2), Offset(size.x * 0.3, -size.x * 0.2), blinkPaint);
       canvas.drawLine(Offset(size.x * 0.1, size.x * 0.2), Offset(size.x * 0.3, size.x * 0.2), blinkPaint);
     }
+    canvas.restore();
   }
 
   @override
@@ -137,6 +155,7 @@ class SnakePlayer extends PositionComponent with HasGameRef<SnakeHunterGame>, Co
       other.removeFromParent();
       gameRef.gameState.addScore(100);
       currentLength = math.min(currentLength + 1, 50);
+      _impactTimer = 0.15; // Trigger impact stretch
       
       // Haptic Feedback
       JuiceService.success();
