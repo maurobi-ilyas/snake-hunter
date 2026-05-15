@@ -26,7 +26,7 @@ const AIMemory = {
       "Validate APK size < 20MB per ABI"
     ]
   },
-  previousIssues: "1. Removed tap-to-move logic to resolve compilation error. 2. Fixed adaptive icon resource linking. 3. Restored accidentally removed _isSoundOn variable in GameState during X10THINK system integration."
+  previousIssues: "1. Refactored project into Advanced Modular Structure. 2. Fixed AcceleratedParticle argument (changed velocity to speed). 3. Implemented robust Object Pooling and SaveSystem."
 };
 
 module.exports = AIMemory;

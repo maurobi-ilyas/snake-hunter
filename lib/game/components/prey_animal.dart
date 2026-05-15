@@ -2,140 +2,89 @@ import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import '../snake_hunter_game.dart';
-import 'snake_player.dart';
+import '../engine/snake_hunter_game.dart';
 
-enum PreyState { idle, wandering, panic, escaping }
+enum AIState { idle, wandering, escaping, eaten }
 
-abstract class PreyAnimal extends PositionComponent with HasGameRef<SnakeHunterGame>, CollisionCallbacks {
-  late PreyState state = PreyState.idle;
-  double speed = 100.0;
-  double fleeDistance = 150.0;
+class PreyAnimal extends SpriteComponent with HasGameRef<SnakeHunterGame>, CollisionCallbacks {
+  final int type; // 0: Rat, 1: Rabbit, 2: Frog
+  final double baseSpeed;
+  
+  AIState state = AIState.wandering;
   Vector2 velocity = Vector2.zero();
-  final math.Random _random = math.Random();
   double _stateTimer = 0;
-  double _wobbleTimer = 0;
+  final math.Random _random = math.Random();
+  
+  PreyAnimal({required this.type, required this.baseSpeed}) : super(size: Vector2.all(32), anchor: Anchor.center);
 
   @override
   Future<void> onLoad() async {
-    size = Vector2.all(30);
-    anchor = Anchor.center;
     add(CircleHitbox());
-    _setRandomWander();
+    _resetWander();
+  }
+
+  void _resetWander() {
+    final angle = _random.nextDouble() * math.pi * 2;
+    velocity = Vector2(math.cos(angle), math.sin(angle)) * baseSpeed;
+    _stateTimer = 2 + _random.nextDouble() * 3;
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-    
-    final snake = gameRef.snake;
-    final distanceToSnake = position.distanceTo(snake.position);
+    if (state == AIState.eaten) return;
 
-    if (distanceToSnake < fleeDistance) {
-      state = PreyState.panic;
-      _fleeFrom(snake.position);
-      _wobbleTimer += dt * 10;
-    } else {
-      state = PreyState.wandering;
-      _updateWander(dt);
-      _wobbleTimer = 0;
-    }
+    _updateAI(dt);
+    position += velocity * dt;
 
-    position.add(velocity * dt);
-    
     // Boundary check
-    if (position.x < 0) position.x = 0;
-    if (position.y < 0) position.y = 0;
-    if (position.x > gameRef.canvasSize.x) position.x = gameRef.canvasSize.x;
-    if (position.y > gameRef.canvasSize.y) position.y = gameRef.canvasSize.y;
-
-    if (velocity.length > 0) {
-      angle = math.atan2(velocity.y, velocity.x);
-    }
+    if (position.x < 0) { position.x = 0; velocity.x *= -1; }
+    if (position.x > gameRef.size.x) { position.x = gameRef.size.x; velocity.x *= -1; }
+    if (position.y < 0) { position.y = 0; velocity.y *= -1; }
+    if (position.y > gameRef.size.y) { position.y = gameRef.size.y; velocity.y *= -1; }
   }
 
-  void _fleeFrom(Vector2 target) {
-    velocity = (position - target).normalized() * (speed * 1.5);
-  }
-
-  void _updateWander(double dt) {
+  void _updateAI(double dt) {
     _stateTimer -= dt;
-    if (_stateTimer <= 0) {
-      _setRandomWander();
+
+    // Detection logic
+    final distanceToSnake = position.distanceTo(gameRef.snake.position);
+    if (distanceToSnake < 150) {
+      state = AIState.escaping;
+      _stateTimer = 1.0;
+    } else if (state == AIState.escaping && _stateTimer <= 0) {
+      state = AIState.wandering;
+      _resetWander();
     }
-  }
 
-  void _setRandomWander() {
-    state = PreyState.wandering;
-    final angle = _random.nextDouble() * 2 * math.pi;
-    velocity = Vector2(math.cos(angle), math.sin(angle)) * speed;
-    _stateTimer = 1.0 + _random.nextDouble() * 2.0;
-  }
-}
-
-class Rat extends PreyAnimal {
-  @override
-  void render(Canvas canvas) {
-    if (state == PreyState.panic) {
-      canvas.rotate(math.sin(_wobbleTimer) * 0.2);
-    }
-    final paint = Paint()..color = Colors.grey;
-    canvas.drawOval(size.toRect(), paint);
-    
-    // Tail
-    final tailPaint = Paint()
-      ..color = Colors.grey
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawLine(Offset(0, size.y / 2), Offset(-10, size.y / 2), tailPaint);
-  }
-}
-
-class Rabbit extends PreyAnimal {
-  Rabbit() {
-    speed = 150.0;
-    fleeDistance = 200.0;
-  }
-
-  @override
-  void render(Canvas canvas) {
-    if (state == PreyState.panic) {
-      canvas.rotate(math.sin(_wobbleTimer) * 0.3);
-    }
-    final paint = Paint()..color = const Color(0xFFF8BBD0); // Pastel Pink
-    canvas.drawOval(size.toRect(), paint);
-    
-    // Ears
-    canvas.drawOval(Rect.fromLTWH(size.x * 0.1, -10, 10, 20), paint);
-    canvas.drawOval(Rect.fromLTWH(size.x * 0.5, -10, 10, 20), paint);
-  }
-}
-
-class Frog extends PreyAnimal {
-  Frog() {
-    speed = 80.0;
-  }
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    // Occasionally jump (burst of speed)
-    if (math.Random().nextDouble() < 0.01) {
-      velocity *= 5;
+    switch (state) {
+      case AIState.wandering:
+        if (_stateTimer <= 0) _resetWander();
+        break;
+      case AIState.escaping:
+        // Run away from snake
+        final dir = (position - gameRef.snake.position).normalized();
+        velocity = dir * baseSpeed * 2.0;
+        break;
+      default:
+        break;
     }
   }
 
   @override
   void render(Canvas canvas) {
-    if (state == PreyState.panic) {
-      canvas.rotate(math.sin(_wobbleTimer) * 0.2);
+    super.render(canvas);
+    // Add a simple wobble if escaping
+    if (state == AIState.escaping) {
+      canvas.save();
+      final wobble = math.sin(gameRef.elapsedTime * 20) * 0.1;
+      canvas.scale(1.0 + wobble);
+      canvas.restore();
     }
-    final paint = Paint()..color = const Color(0xFF4DB6AC); // Pastel Teal
-    canvas.drawCircle(Offset(size.x / 2, size.y / 2), size.x / 2, paint);
-    
-    // Eyes
-    final eyePaint = Paint()..color = Colors.white;
-    canvas.drawCircle(Offset(size.x * 0.2, size.y * 0.2), 6, eyePaint);
-    canvas.drawCircle(Offset(size.x * 0.8, size.y * 0.2), 6, eyePaint);
+  }
+
+  void onEaten() {
+    state = AIState.eaten;
+    removeFromParent();
   }
 }

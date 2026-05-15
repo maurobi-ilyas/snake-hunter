@@ -4,11 +4,11 @@ import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
-import '../services/game_state.dart';
-import 'components/snake_player.dart';
-import 'components/environment.dart';
-import 'components/prey_animal.dart';
-import 'prey_pool.dart';
+import '../../services/game_state.dart';
+import '../components/snake_player.dart';
+import '../components/environment.dart';
+import '../components/prey_animal.dart';
+import '../../services/prey_pool.dart';
 
 class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCollisionDetection, TapCallbacks {
   final GameState gameState;
@@ -17,6 +17,7 @@ class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCo
   late JoystickComponent joystick;
   final PreyPool preyPool = PreyPool();
   double _timerAcc = 0;
+  double elapsedTime = 0;
 
   SnakeHunterGame(this.gameState);
 
@@ -60,6 +61,7 @@ class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCo
   @override
   void update(double dt) {
     super.update(dt);
+    elapsedTime += dt;
     
     if (gameState.status == GameStatus.playing) {
       _timerAcc += dt;

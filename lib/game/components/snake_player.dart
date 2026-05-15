@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'prey_animal.dart';
 import 'floating_text.dart';
-import '../snake_hunter_game.dart';
-import '../../core/constants.dart';
+import '../engine/snake_hunter_game.dart';
+import '../../services/particle_service.dart';
 
 class SnakePlayer extends PositionComponent with HasGameRef<SnakeHunterGame>, CollisionCallbacks {
   static const double baseSpeed = 220.0;
@@ -149,23 +149,7 @@ class SnakePlayer extends PositionComponent with HasGameRef<SnakeHunterGame>, Co
       );
       
       // Particles
-      gameRef.add(
-        ParticleSystemComponent(
-          particle: Particle.generate(
-            count: 15,
-            lifespan: 0.5,
-            generator: (i) => AcceleratedParticle(
-              acceleration: Vector2.random() * 200,
-              speed: Vector2.random() * 100,
-              position: position.clone(),
-              child: CircleParticle(
-                radius: 3,
-                paint: Paint()..color = GameColors.accent,
-              ),
-            ),
-          ),
-        ),
-      );
+      gameRef.add(ParticleService.createEatParticle(other.position, gameRef.gameState.currentSkin.headColor));
 
       add(ScaleEffect.by(Vector2.all(1.2), EffectController(duration: 0.1, reverseDuration: 0.1)));
     }

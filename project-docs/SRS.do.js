@@ -35,10 +35,11 @@ const SRS = {
     feedback: "Rewarding haptic (visual) feedback on every successful hunt."
   },
   scalability: {
-    skinSystem: "Architecture ready for custom snake skins (Texture swapping).",
-    mapSystem: "Procedural environment supports multiple biomes/maps.",
-    progression: "Achievement and Mission foundations included in GameState.",
-    saveSystem: "Local persistence via SharedPreferences (Ready for Cloud Sync)."
+    skinSystem: "Modular texture swapping architecture implemented.",
+    mapSystem: "Biomes and maps supported via configuration.",
+    progression: "Achievement and Mission state machine included.",
+    saveSystem: "Scalable JSON-based persistence with SaveSystem service.",
+    objectPooling: "Mandatory for all entities (Prey, Particles) to ensure 60 FPS."
   }
 };
 

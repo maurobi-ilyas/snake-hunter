@@ -1,7 +1,7 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'game/snake_hunter_game.dart';
+import 'game/engine/snake_hunter_game.dart';
 import 'ui/screens/main_menu.dart';
 import 'services/game_state.dart';
 
