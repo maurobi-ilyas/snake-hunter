@@ -21,6 +21,13 @@ class PreyAnimal extends SpriteComponent with HasGameRef<SnakeHunterGame>, Colli
   Future<void> onLoad() async {
     add(CircleHitbox());
     _resetWander();
+    
+    // AAA Sprite Loading from Sheet
+    sprite = await gameRef.loadSprite(
+      'animals.png',
+      srcPosition: Vector2(type * 32.0, 0),
+      srcSize: Vector2.all(32),
+    );
   }
 
   void _resetWander() {

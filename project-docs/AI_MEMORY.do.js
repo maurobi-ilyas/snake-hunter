@@ -26,7 +26,7 @@ const AIMemory = {
       "Validate APK size < 20MB per ABI"
     ]
   },
-  previousIssues: "1. Refactored project into Advanced Modular Structure. 2. Fixed AcceleratedParticle argument (changed velocity to speed). 3. Implemented robust Object Pooling and SaveSystem."
+  previousIssues: "1. Fixed AcceleratedParticle argument (speed). 2. Fixed PreyAnimal missing sprite error by generating and loading animals.png sprite sheet. 3. Implemented Master Release systems."
 };
 
 module.exports = AIMemory;
