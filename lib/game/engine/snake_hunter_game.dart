@@ -13,7 +13,7 @@ import '../components/prey_animal.dart';
 import '../../services/prey_pool.dart';
 import '../../services/particle_pool.dart';
 
-class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCollisionDetection, TapCallbacks {
+class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCollisionDetection, TapCallbacks, WidgetsBindingObserver {
   final GameState gameState;
   late SnakePlayer snake;
   late Environment environment;
@@ -61,6 +61,24 @@ class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCo
 
     // Setup camera
     camera.follow(snake);
+    
+    // Add Lifecycle Observer
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void onRemove() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.onRemove();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) {
+      if (gameState.status == GameStatus.playing) {
+        paused = true;
+      }
+    }
   }
 
 

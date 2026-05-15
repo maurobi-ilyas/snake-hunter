@@ -28,14 +28,21 @@ class SaveData {
     'completedMissions': completedMissions,
   };
 
-  factory SaveData.fromJson(Map<String, dynamic> json) => SaveData(
-    highScore: json['highScore'] ?? 0,
-    unlockedSkins: List<String>.from(json['unlockedSkins'] ?? ['default']),
-    isSoundOn: json['isSoundOn'] ?? true,
-    isMusicOn: json['isMusicOn'] ?? true,
-    playerLevel: json['playerLevel'] ?? 1,
-    completedMissions: List<String>.from(json['completedMissions'] ?? []),
-  );
+  factory SaveData.fromJson(Map<String, dynamic> json) {
+    try {
+      return SaveData(
+        highScore: (json['highScore'] is int && (json['highScore'] as int) >= 0) ? json['highScore'] : 0,
+        unlockedSkins: List<String>.from(json['unlockedSkins'] ?? ['default']),
+        isSoundOn: json['isSoundOn'] ?? true,
+        isMusicOn: json['isMusicOn'] ?? true,
+        playerLevel: (json['playerLevel'] is int && (json['playerLevel'] as int) >= 1) ? json['playerLevel'] : 1,
+        completedMissions: List<String>.from(json['completedMissions'] ?? []),
+      );
+    } catch (e) {
+      dev.log('SaveData Recovery: Corrupt sub-keys detected, returning partial defaults', name: 'SaveSystem');
+      return SaveData();
+    }
+  }
 }
 
 class SaveSystem {

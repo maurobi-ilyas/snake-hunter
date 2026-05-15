@@ -16,7 +16,13 @@ const DeviceTestReport = {
     },
     thermals: "Cool (Max 38°C after 15m)",
     touchLatency: "Excellent (< 16ms)",
-    ramUsage: "68MB (Baseline), 92MB (Peak)"
+    ramUsage: "68MB (Baseline), 92MB (Peak)",
+    edgeCaseValidation: {
+      pauseResumeSpam: "PASSED",
+      minimizeDuringPlay: "PASSED (Auto-paused)",
+      saveInterruption: "PASSED (Safe recovery active)",
+      lowBatteryMode: "PASSED (FPS stability maintained)"
+    }
   },
   lowEndDeviceTest: {
     target: "2GB RAM Device",
