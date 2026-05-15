@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import '../services/game_state.dart';
 import 'components/snake_player.dart';
 import 'components/environment.dart';
@@ -72,6 +73,10 @@ class SnakeHunterGame extends FlameGame with HasKeyboardHandlerComponents, HasCo
         overlays.remove('HUD');
         paused = true;
       }
+
+      // Dynamic Camera Zoom
+      double targetZoom = 1.0 + (gameState.combo * 0.05);
+      camera.viewfinder.zoom = ui.lerpDouble(camera.viewfinder.zoom, targetZoom, dt * 2) ?? 1.0;
     }
   }
 

@@ -4,6 +4,15 @@
  */
 
 const GameRules = {
+  levelProgression: {
+    baseExp: 2000,
+    difficultyMultiplier: 1.2,
+    maxLevel: 100
+  },
+  missionSystem: {
+    types: ["Score-based", "Hunt-based", "Time-based"],
+    rewards: ["Skins", "Titles"]
+  },
   player: {
     baseSpeed: 220,
     acceleration: 400,

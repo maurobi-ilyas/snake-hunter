@@ -33,6 +33,12 @@ const SRS = {
   gameFeel: {
     juiciness: ["Camera Shake", "Floating Scores", "Elastic UI Animations", "Particle Bursts"],
     feedback: "Rewarding haptic (visual) feedback on every successful hunt."
+  },
+  scalability: {
+    skinSystem: "Architecture ready for custom snake skins (Texture swapping).",
+    mapSystem: "Procedural environment supports multiple biomes/maps.",
+    progression: "Achievement and Mission foundations included in GameState.",
+    saveSystem: "Local persistence via SharedPreferences (Ready for Cloud Sync)."
   }
 };
 

@@ -4,6 +4,8 @@
  */
 
 const AIMemory = {
+  mode: "X10THINK FULL PRODUCTION ENGINE",
+  philosophy: "Senior Mobile Game Engineer mindset. Focus on scalability, maintainability, and Android-first performance.",
   styleGuide: "Modern cartoon, pastel, premium glassmorphism UI.",
   namingConvention: "PascalCase for classes, camelCase for variables/methods.",
   importantPatterns: [
@@ -24,7 +26,7 @@ const AIMemory = {
       "Validate APK size < 20MB per ABI"
     ]
   },
-  previousIssues: "1. Removed tap-to-move logic to resolve compilation error after switching to joystick-only controls. 2. Created missing assets/images and assets/audio directories to fix build failure. 3. Fixed Android resource linking error by creating missing ic_launcher_foreground.xml for adaptive icons."
+  previousIssues: "1. Removed tap-to-move logic to resolve compilation error. 2. Fixed adaptive icon resource linking. 3. Restored accidentally removed _isSoundOn variable in GameState during X10THINK system integration."
 };
 
 module.exports = AIMemory;

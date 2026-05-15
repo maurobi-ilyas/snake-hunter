@@ -82,8 +82,9 @@ class SnakePlayer extends PositionComponent with HasGameRef<SnakeHunterGame>, Co
 
   @override
   void render(Canvas canvas) {
+    final skin = gameRef.gameState.currentSkin;
     // Render Body Segments
-    final bodyPaint = Paint()..color = GameColors.snakeBody;
+    final bodyPaint = Paint()..color = skin.bodyColor;
     for (int i = 1; i < currentLength; i++) {
       int index = i * 8; 
       if (index < bodyPositions.length) {
@@ -109,12 +110,12 @@ class SnakePlayer extends PositionComponent with HasGameRef<SnakeHunterGame>, Co
     }
 
     // Render Head
-    final headPaint = Paint()..color = GameColors.snakeHead;
+    final headPaint = Paint()..color = skin.headColor;
     canvas.drawCircle(Offset.zero, size.x / 2, headPaint);
     
     // Eyes
     if (!_isBlinking) {
-      final eyePaint = Paint()..color = Colors.white;
+      final eyePaint = Paint()..color = skin.eyeColor;
       canvas.drawCircle(Offset(size.x * 0.2, -size.x * 0.2), 6, eyePaint);
       canvas.drawCircle(Offset(size.x * 0.2, size.x * 0.2), 6, eyePaint);
       

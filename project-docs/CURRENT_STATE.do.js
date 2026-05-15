@@ -14,7 +14,9 @@ const CurrentState = {
     "Physical Testing: Solid 60FPS on Redmi Note 8",
     "Pre-Git Validation: Passed (FPS, Touch, Thermal, APK Size)",
     "Fixed widget_test.dart smoke test",
-    "Fixed Android resource linking and compilation errors",
+    "Implemented Scalable Skin System foundation",
+    "Implemented Mission/Achievement System foundation",
+    "Added Dynamic Camera Zoom for enhanced Game Feel",
     "Cleaned up redundant touch-to-move logic for Joystick precision"
   ],
   milestones: {

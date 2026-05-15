@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'leaderboard_service.dart';
+import '../core/skin_system.dart';
+import '../core/mission_system.dart';
 
 enum GameStatus { menu, playing, paused, gameOver }
 
@@ -13,6 +15,11 @@ class GameState with ChangeNotifier {
   int _timeLeft = 60;
   bool _isSoundOn = true;
   bool _isMusicOn = true;
+  SnakeSkin _currentSkin = SnakeSkin.defaultSkin;
+  final List<Mission> _missions = [
+    Mission(id: 'hunt_10', title: 'Novice Hunter', description: 'Catch 10 animals', goalValue: 10),
+    Mission(id: 'score_5000', title: 'High Scorer', description: 'Reach 5000 points', goalValue: 5000),
+  ];
 
   int get score => _score;
   int get highScore => _highScore;
@@ -22,6 +29,8 @@ class GameState with ChangeNotifier {
   int get timeLeft => _timeLeft;
   bool get isSoundOn => _isSoundOn;
   bool get isMusicOn => _isMusicOn;
+  SnakeSkin get currentSkin => _currentSkin;
+  List<Mission> get missions => _missions;
 
   void addScore(int points) {
     final now = DateTime.now();
@@ -34,6 +43,12 @@ class GameState with ChangeNotifier {
 
     _score += (points * (1 + (_combo * 0.1))).toInt();
     
+    // Update Missions
+    for (var m in _missions) {
+      if (m.id == 'hunt_10') m.update(1);
+      if (m.id == 'score_5000') m.update(points);
+    }
+
     // Level Up Check
     int newLevel = (_score / 2000).floor() + 1;
     if (newLevel > _level) {
@@ -88,6 +103,11 @@ class GameState with ChangeNotifier {
 
   void toggleMusic() {
     _isMusicOn = !_isMusicOn;
+    notifyListeners();
+  }
+
+  void setSkin(SnakeSkin skin) {
+    _currentSkin = skin;
     notifyListeners();
   }
 
