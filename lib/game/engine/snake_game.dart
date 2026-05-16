@@ -209,9 +209,11 @@ class SnakeGame extends FlameGame {
     if (newLevel != level) {
       level = newLevel;
       levelNotifier.value = level;
-      currentSpeed = (GameConfig.gameSpeed - (level - 1) * 0.01).clamp(0.06, 1.0);
-      startGameLoop();
     }
+
+    currentSpeed = GameConfig.gameSpeed - (snake.body.length * 0.0025);
+    if (currentSpeed < 0.05) currentSpeed = 0.05;
+    startGameLoop();
 
     final newStage = ((score ~/ 15) + 1).clamp(1, 4);
     if (newStage != stage) {
@@ -397,33 +399,98 @@ class SnakeGame extends FlameGame {
   }
 
   void drawSnake(Canvas canvas) {
-    for (int i = 0; i < snake.body.length; i++) {
+    for (int i = snake.body.length - 1; i >= 0; i--) {
       final part = snake.body[i];
       final t = i / snake.body.length.clamp(1, 999);
       final color = Color.lerp(skinColor, skinDark, t)!;
-      final rect = Rect.fromLTWH(part.x * GameConfig.cellSize + 1.5, part.y * GameConfig.cellSize + 1.5, GameConfig.cellSize - 3, GameConfig.cellSize - 3);
+      final x = part.x * GameConfig.cellSize + GameConfig.cellSize / 2;
+      final y = part.y * GameConfig.cellSize + GameConfig.cellSize / 2;
+      final radius = GameConfig.cellSize / 2.2;
+
       if (i == 0) {
-        // Animated head glow
-        final glowR = 4.0 + sin(_pulseT) * 1.5;
-        canvas.drawRRect(RRect.fromRectAndRadius(rect.inflate(glowR), const Radius.circular(6)),
-          Paint()..color = skinColor.withOpacity(0.25)..maskFilter = const MaskFilter.blur(BlurStyle.outer, 5));
+        final glowR = radius + 3 + sin(_pulseT) * 1.5;
+        canvas.drawCircle(Offset(x, y), glowR,
+          Paint()..color = skinColor.withOpacity(0.3)..maskFilter = const MaskFilter.blur(BlurStyle.outer, 5));
       }
-      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(4)), Paint()..color = color);
+
+      canvas.drawCircle(
+        Offset(x, y),
+        radius,
+        Paint()
+          ..shader = RadialGradient(colors: [skinColor, color]).createShader(Rect.fromCircle(center: Offset(x, y), radius: radius))
+          ..color = color.withOpacity(0.9),
+      );
+
+      if (i == 0) _drawHeadFeatures(canvas, x, y, radius, direction);
     }
   }
 
   void drawEnemySnake(Canvas canvas) {
-    for (int i = 0; i < enemySnake.body.length; i++) {
+    for (int i = enemySnake.body.length - 1; i >= 0; i--) {
       final part = enemySnake.body[i];
       final t = i / enemySnake.body.length.clamp(1, 999);
       final color = Color.lerp(Colors.orangeAccent, const Color(0xFF7B3F00), t)!;
-      final rect = Rect.fromLTWH(part.x * GameConfig.cellSize + 1.5, part.y * GameConfig.cellSize + 1.5, GameConfig.cellSize - 3, GameConfig.cellSize - 3);
+      final x = part.x * GameConfig.cellSize + GameConfig.cellSize / 2;
+      final y = part.y * GameConfig.cellSize + GameConfig.cellSize / 2;
+      final radius = GameConfig.cellSize / 2.2;
+
       if (i == 0) {
-        canvas.drawRRect(RRect.fromRectAndRadius(rect.inflate(3), const Radius.circular(5)),
+        canvas.drawCircle(Offset(x, y), radius + 2,
           Paint()..color = Colors.orangeAccent.withOpacity(0.25)..maskFilter = const MaskFilter.blur(BlurStyle.outer, 4));
       }
-      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(4)), Paint()..color = color);
+
+      canvas.drawCircle(
+        Offset(x, y),
+        radius,
+        Paint()
+          ..shader = RadialGradient(colors: [Colors.orangeAccent, color]).createShader(Rect.fromCircle(center: Offset(x, y), radius: radius))
+          ..color = color.withOpacity(0.9),
+      );
+
+      if (i == 0) {
+        Direction dir = Direction.right;
+        if (enemySnake.body.length > 1) {
+           final p2 = enemySnake.body[1];
+           if (part.x > p2.x) dir = Direction.right;
+           else if (part.x < p2.x) dir = Direction.left;
+           else if (part.y > p2.y) dir = Direction.down;
+           else if (part.y < p2.y) dir = Direction.up;
+        }
+        _drawHeadFeatures(canvas, x, y, radius, dir);
+      }
     }
+  }
+
+  void _drawHeadFeatures(Canvas canvas, double x, double y, double r, Direction dir) {
+    final eyeP = Paint()..color = Colors.white;
+    final pupilP = Paint()..color = Colors.black;
+    final tongueP = Paint()..color = Colors.redAccent..strokeWidth = 1.5;
+
+    double dx = 0, dy = 0;
+    if (dir == Direction.up) dy = -1;
+    if (dir == Direction.down) dy = 1;
+    if (dir == Direction.left) dx = -1;
+    if (dir == Direction.right) dx = 1;
+
+    final double eOx = (dir == Direction.up || dir == Direction.down) ? r * 0.4 : 0;
+    final double eOy = (dir == Direction.left || dir == Direction.right) ? r * 0.4 : 0;
+    
+    final eye1X = x + dx * r * 0.3 + eOx;
+    final eye1Y = y + dy * r * 0.3 + eOy;
+    final eye2X = x + dx * r * 0.3 - eOx;
+    final eye2Y = y + dy * r * 0.3 - eOy;
+
+    canvas.drawCircle(Offset(eye1X, eye1Y), r * 0.25, eyeP);
+    canvas.drawCircle(Offset(eye2X, eye2Y), r * 0.25, eyeP);
+    
+    canvas.drawCircle(Offset(eye1X + dx * 1.5, eye1Y + dy * 1.5), r * 0.12, pupilP);
+    canvas.drawCircle(Offset(eye2X + dx * 1.5, eye2Y + dy * 1.5), r * 0.12, pupilP);
+
+    final tx = x + dx * r;
+    final ty = y + dy * r;
+    canvas.drawLine(Offset(tx, ty), Offset(tx + dx * r * 0.6, ty + dy * r * 0.6), tongueP);
+    canvas.drawLine(Offset(tx + dx * r * 0.6, ty + dy * r * 0.6), Offset(tx + dx * r * 0.8 + eOx*0.3, ty + dy * r * 0.8 + eOy*0.3), tongueP);
+    canvas.drawLine(Offset(tx + dx * r * 0.6, ty + dy * r * 0.6), Offset(tx + dx * r * 0.8 - eOx*0.3, ty + dy * r * 0.8 - eOy*0.3), tongueP);
   }
 
   void drawBoss(Canvas canvas) {

@@ -1,6 +1,6 @@
 class GameConfig {
   static const int rows = 20;
-  static const int columns = 20;
+  static const int columns = 40;
 
   static const double cellSize = 20;
 
