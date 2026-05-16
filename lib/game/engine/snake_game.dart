@@ -309,9 +309,8 @@ class SnakeGame extends FlameGame {
   }
 
   void generateFood() {
-    int numFoods = random.nextInt(3) + 2; // 2 to 4 foods
     foods.clear();
-    for (int i = 0; i < numFoods; i++) {
+    for (int i = 0; i < 3; i++) {
       generateSingleFood();
     }
   }
