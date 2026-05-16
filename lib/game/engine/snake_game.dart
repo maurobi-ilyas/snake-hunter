@@ -5,6 +5,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/services/audio_service.dart';
+import '../../core/services/effect_service.dart';
 import '../../core/services/firestore_service.dart';
 import '../../core/services/local_storage_service.dart';
 import '../components/boss_component.dart';
@@ -30,25 +31,32 @@ class SnakeGame extends FlameGame {
   Direction? _nextDirection;
   Timer? gameTimer;
 
-  int score = 0;
-  int coins = 0;
-  int level = 1;
-  int stage = 1;
+  int score     = 0;
+  int coins     = 0;
+  int combo     = 0;
+  int level     = 1;
+  int stage     = 1;
   int highScore = 0;
   double currentSpeed = GameConfig.gameSpeed;
   String playerName = 'Guest Player';
-  bool bossMode = false;
-  bool isGameOver = false;
+
+  bool bossMode    = false;
+  bool isGameOver  = false;
+  bool cameraShake = false;
+
+  // ── Particle pulse ────────────────────────────────────────
+  double _pulseT = 0.0;
 
   // ── Skin ────────────────────────────────────────────────
   Color skinColor = Colors.greenAccent;
   Color skinDark  = const Color(0xFF1B5E20);
 
   // ── Notifiers ────────────────────────────────────────────
-  final ValueNotifier<int>  scoreNotifier  = ValueNotifier(0);
-  final ValueNotifier<int>  levelNotifier  = ValueNotifier(1);
-  final ValueNotifier<int>  coinsNotifier  = ValueNotifier(0);
-  final ValueNotifier<int>  stageNotifier  = ValueNotifier(1);
+  final ValueNotifier<int> scoreNotifier = ValueNotifier(0);
+  final ValueNotifier<int> levelNotifier = ValueNotifier(1);
+  final ValueNotifier<int> coinsNotifier = ValueNotifier(0);
+  final ValueNotifier<int> stageNotifier = ValueNotifier(1);
+  final ValueNotifier<int> comboNotifier = ValueNotifier(0);
 
   final Random random = Random();
 
@@ -79,17 +87,21 @@ class SnakeGame extends FlameGame {
     boss       = BossComponent();
     score      = 0;
     coins      = 0;
+    combo      = 0;
     level      = 1;
     stage      = 1;
     bossMode   = false;
-    currentSpeed = GameConfig.gameSpeed;
-    isGameOver   = false;
-    direction    = Direction.right;
+    cameraShake = false;
+    currentSpeed  = GameConfig.gameSpeed;
+    isGameOver    = false;
+    direction     = Direction.right;
     _nextDirection = null;
+    _pulseT       = 0.0;
     scoreNotifier.value = 0;
     levelNotifier.value = 1;
     coinsNotifier.value = 0;
     stageNotifier.value = 1;
+    comboNotifier.value = 0;
     generateFood();
     generateObstacles();
     startGameLoop();
@@ -109,6 +121,17 @@ class SnakeGame extends FlameGame {
         moveSnake();
       },
     );
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    // Animate food pulse
+    _pulseT = (_pulseT + dt * 3.0) % (2 * pi);
+    // Auto-clear camera shake
+    if (cameraShake) {
+      Future.delayed(const Duration(milliseconds: 160), () => cameraShake = false);
+    }
   }
 
   void moveSnake() {
@@ -134,11 +157,12 @@ class SnakeGame extends FlameGame {
       generateFood();
     } else {
       snake.body.removeLast();
+      combo = 0; // reset combo if no food eaten this tick
+      comboNotifier.value = 0;
     }
 
     checkSelfCollision();
     if (isGameOver) return;
-
     moveEnemySnake();
     moveBoss();
   }
@@ -149,21 +173,32 @@ class SnakeGame extends FlameGame {
     switch (food.type) {
       case FoodType.normal:
         score++;
-        coins += 2;
+        combo++;
+        final bonus = combo >= 5 ? 3 : (combo >= 3 ? 2 : 1);
+        coins += bonus * 2;
+        scoreNotifier.value = score;
+        coinsNotifier.value = coins;
+        comboNotifier.value = combo;
         AudioService.playEat();
+        EffectService.vibrateShort();
         break;
+
       case FoodType.poison:
         gameOver(); return;
+
       case FoodType.speed:
         score += 2;
+        combo++;
         coins += 5;
+        scoreNotifier.value = score;
+        coinsNotifier.value = coins;
+        comboNotifier.value = combo;
         currentSpeed = (currentSpeed * 0.9).clamp(0.06, 1.0);
         AudioService.playEat();
+        EffectService.vibrateShort();
         startGameLoop();
         break;
     }
-    scoreNotifier.value = score;
-    coinsNotifier.value = coins;
     updateLevelAndStage();
   }
 
@@ -176,16 +211,13 @@ class SnakeGame extends FlameGame {
       startGameLoop();
     }
 
-    // Stage every 15 score, max 4
     final newStage = ((score ~/ 15) + 1).clamp(1, 4);
     if (newStage != stage) {
       stage = newStage;
       stageNotifier.value = stage;
-      // Regenerate obstacles for new stage
       generateObstacles();
     }
 
-    // Boss mode activates at score 30+
     if (score >= 30 && !bossMode) {
       bossMode = true;
       boss = BossComponent(startX: random.nextInt(GameConfig.columns - 2) + 1, startY: 3);
@@ -241,6 +273,8 @@ class SnakeGame extends FlameGame {
     if (!bossMode) return;
     if (head.x == boss.position.x && head.y == boss.position.y) {
       boss.hp--;
+      EffectService.vibrateBossHit();
+      cameraShake = true;
       if (boss.hp <= 0) {
         bossMode = false;
         score += 20;
@@ -251,7 +285,7 @@ class SnakeGame extends FlameGame {
     }
   }
 
-  // ── Enemy AI ─────────────────────────────────────────────
+  // ── AI ───────────────────────────────────────────────────
 
   void moveEnemySnake() {
     if (isGameOver) return;
@@ -268,24 +302,17 @@ class SnakeGame extends FlameGame {
     if (head == food.position) generateFood();
   }
 
-  // ── Boss AI ──────────────────────────────────────────────
-
   void moveBoss() {
     if (!bossMode || isGameOver) return;
     boss.moveCounter++;
-    // Boss moves every 3 ticks (slower than snake)
     if (boss.moveCounter % 3 != 0) return;
-
     final head = snake.body.first;
     if (boss.position.x < head.x) boss.position.x++;
     else if (boss.position.x > head.x) boss.position.x--;
     else if (boss.position.y < head.y) boss.position.y++;
     else if (boss.position.y > head.y) boss.position.y--;
-
     boss.position.x = boss.position.x.clamp(0, GameConfig.columns - 2);
     boss.position.y = boss.position.y.clamp(0, GameConfig.rows - 2);
-
-    // If boss touches player → game over
     if (boss.position == head) gameOver();
   }
 
@@ -293,9 +320,11 @@ class SnakeGame extends FlameGame {
 
   void gameOver() {
     if (isGameOver) return;
-    isGameOver = true;
+    isGameOver  = true;
+    cameraShake = true;
     gameTimer?.cancel();
     AudioService.playGameOver();
+    EffectService.vibrateGameOver();
     LocalStorageService.saveHighScore(score);
     LocalStorageService.addCoins(coins);
     if (score > highScore) highScore = score;
@@ -318,6 +347,13 @@ class SnakeGame extends FlameGame {
   void render(Canvas canvas) {
     final map = gameMaps[(stage - 1).clamp(0, 3)];
 
+    // Camera shake offset
+    final shakeX = cameraShake ? (random.nextDouble() - 0.5) * 5 : 0.0;
+    final shakeY = cameraShake ? (random.nextDouble() - 0.5) * 5 : 0.0;
+
+    canvas.save();
+    canvas.translate(shakeX, shakeY);
+
     // Background
     canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), Paint()..color = map.backgroundColor);
     super.render(canvas);
@@ -330,6 +366,8 @@ class SnakeGame extends FlameGame {
     drawSnake(canvas);
     drawHUD(canvas, map.accentColor);
     if (isGameOver) drawGameOver(canvas);
+
+    canvas.restore();
   }
 
   void drawGrid(Canvas canvas, Color gridColor) {
@@ -351,8 +389,10 @@ class SnakeGame extends FlameGame {
       final color = Color.lerp(skinColor, skinDark, t)!;
       final rect = Rect.fromLTWH(part.x * GameConfig.cellSize + 1.5, part.y * GameConfig.cellSize + 1.5, GameConfig.cellSize - 3, GameConfig.cellSize - 3);
       if (i == 0) {
-        canvas.drawRRect(RRect.fromRectAndRadius(rect.inflate(2), const Radius.circular(5)),
-          Paint()..color = skinColor.withOpacity(0.3)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5));
+        // Animated head glow
+        final glowR = 4.0 + sin(_pulseT) * 1.5;
+        canvas.drawRRect(RRect.fromRectAndRadius(rect.inflate(glowR), const Radius.circular(6)),
+          Paint()..color = skinColor.withOpacity(0.25)..maskFilter = const MaskFilter.blur(BlurStyle.outer, 5));
       }
       canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(4)), Paint()..color = color);
     }
@@ -365,8 +405,8 @@ class SnakeGame extends FlameGame {
       final color = Color.lerp(Colors.orangeAccent, const Color(0xFF7B3F00), t)!;
       final rect = Rect.fromLTWH(part.x * GameConfig.cellSize + 1.5, part.y * GameConfig.cellSize + 1.5, GameConfig.cellSize - 3, GameConfig.cellSize - 3);
       if (i == 0) {
-        canvas.drawRRect(RRect.fromRectAndRadius(rect.inflate(2), const Radius.circular(5)),
-          Paint()..color = Colors.orangeAccent.withOpacity(0.3)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+        canvas.drawRRect(RRect.fromRectAndRadius(rect.inflate(3), const Radius.circular(5)),
+          Paint()..color = Colors.orangeAccent.withOpacity(0.25)..maskFilter = const MaskFilter.blur(BlurStyle.outer, 4));
       }
       canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(4)), Paint()..color = color);
     }
@@ -378,21 +418,20 @@ class SnakeGame extends FlameGame {
     final bSize = GameConfig.cellSize * 2;
     final rect = Rect.fromLTWH(bx, by, bSize, bSize);
 
-    // Glow
-    canvas.drawRect(rect.inflate(4),
-      Paint()..color = Colors.redAccent.withOpacity(0.3)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
-    // Body
+    // Pulsing glow
+    final glowOpacity = 0.2 + sin(_pulseT) * 0.15;
+    canvas.drawRect(rect.inflate(6),
+      Paint()..color = Colors.redAccent.withOpacity(glowOpacity)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
     canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(6)), Paint()..color = Colors.red.shade900);
     canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(6)),
       Paint()..color = Colors.redAccent..style = PaintingStyle.stroke..strokeWidth = 1.5);
 
     // HP bar
     final hpRatio = boss.hp / boss.maxHp;
-    final barWidth = bSize;
-    canvas.drawRect(Rect.fromLTWH(bx, by - 8, barWidth, 4), Paint()..color = Colors.white12);
-    canvas.drawRect(Rect.fromLTWH(bx, by - 8, barWidth * hpRatio, 4), Paint()..color = Colors.redAccent);
+    canvas.drawRect(Rect.fromLTWH(bx, by - 8, bSize, 4), Paint()..color = Colors.white12);
+    canvas.drawRect(Rect.fromLTWH(bx, by - 8, bSize * hpRatio, 4),
+      Paint()..color = Color.lerp(Colors.redAccent, Colors.greenAccent, hpRatio)!);
 
-    // Boss label
     final tp = TextPainter(
       text: const TextSpan(text: '👾 BOSS', style: TextStyle(color: Colors.redAccent, fontSize: 8, fontWeight: FontWeight.bold)),
       textDirection: TextDirection.ltr,
@@ -406,12 +445,27 @@ class SnakeGame extends FlameGame {
       FoodType.poison => Colors.purpleAccent,
       FoodType.speed  => Colors.blueAccent,
     };
+
     final cx = food.position.x * GameConfig.cellSize + GameConfig.cellSize / 2;
     final cy = food.position.y * GameConfig.cellSize + GameConfig.cellSize / 2;
     final r = GameConfig.cellSize / 2 - 2;
-    canvas.drawCircle(Offset(cx, cy), r + 4, Paint()..color = foodColor.withOpacity(0.25)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
+
+    // Animated outer particle glow
+    final outerR = r + 5 + sin(_pulseT) * 2;
+    canvas.drawCircle(Offset(cx, cy), outerR,
+      Paint()..color = foodColor.withOpacity(0.18)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
+
+    // Inner glow
+    canvas.drawCircle(Offset(cx, cy), r + 2,
+      Paint()..color = foodColor.withOpacity(0.3)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+
+    // Body
     canvas.drawCircle(Offset(cx, cy), r, Paint()..color = foodColor);
+
+    // Shine
     canvas.drawCircle(Offset(cx - r * 0.3, cy - r * 0.3), r * 0.3, Paint()..color = Colors.white.withOpacity(0.5));
+
+    // Type label
     if (food.type != FoodType.normal) {
       final label = food.type == FoodType.poison ? '☠' : '⚡';
       final tp = TextPainter(text: TextSpan(text: label, style: const TextStyle(fontSize: 9)), textDirection: TextDirection.ltr)..layout();
@@ -429,28 +483,48 @@ class SnakeGame extends FlameGame {
   }
 
   void drawHUD(Canvas canvas, Color accent) {
-    _text(canvas, 'SCORE  $score', const Offset(8, 4),  accent,            12);
+    _text(canvas, 'SCORE  $score', const Offset(8, 4),  accent,              12);
     _text(canvas, 'LVL  $level',   const Offset(8, 20), Colors.yellowAccent, 11);
-    _text(canvas, '🪙 $coins',     const Offset(8, 35), Colors.amber,       11);
+    _text(canvas, '🪙 $coins',     const Offset(8, 35), Colors.amber,        11);
 
-    // Stage badge top center
+    // Combo (only show if > 1)
+    if (combo > 1) {
+      final comboColor = combo >= 10 ? Colors.redAccent : combo >= 5 ? Colors.orangeAccent : Colors.yellowAccent;
+      final tp = TextPainter(
+        text: TextSpan(text: '🔥 x$combo', style: TextStyle(
+          color: comboColor,
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+          shadows: [Shadow(color: comboColor, blurRadius: 10)],
+        )),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, const Offset(8, 50));
+    }
+
+    // Stage name top center
     final mapName = gameMaps[(stage - 1).clamp(0, 3)].name;
     final stageTP = TextPainter(
-      text: TextSpan(text: 'STAGE $stage — $mapName',
-          style: TextStyle(color: accent.withOpacity(0.7), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
+      text: TextSpan(text: 'S$stage — $mapName',
+          style: TextStyle(color: accent.withOpacity(0.65), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
       textDirection: TextDirection.ltr,
     )..layout();
     stageTP.paint(canvas, Offset(size.x / 2 - stageTP.width / 2, 5));
 
-    // Best score
-    final hs = 'BEST  $highScore';
-    final hsTP = TextPainter(text: TextSpan(text: hs, style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)), textDirection: TextDirection.ltr)..layout();
+    // Best score top right
+    final hsTP = TextPainter(
+      text: TextSpan(text: 'BEST $highScore', style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
+      textDirection: TextDirection.ltr,
+    )..layout();
     hsTP.paint(canvas, Offset(size.x - hsTP.width - 6, 6));
 
-    // Boss warning
+    // Boss HP warning
     if (bossMode) {
-      final warning = '⚠ BOSS HP: ${boss.hp}/${boss.maxHp}';
-      final wTP = TextPainter(text: TextSpan(text: warning, style: const TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold)), textDirection: TextDirection.ltr)..layout();
+      final wTP = TextPainter(
+        text: TextSpan(text: '⚠ BOSS ${boss.hp}/${boss.maxHp}',
+            style: const TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+        textDirection: TextDirection.ltr,
+      )..layout();
       wTP.paint(canvas, Offset(size.x - wTP.width - 6, 20));
     }
   }
@@ -464,20 +538,20 @@ class SnakeGame extends FlameGame {
   }
 
   void drawGameOver(Canvas canvas) {
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), Paint()..color = Colors.black.withOpacity(0.80));
-    _centered(canvas, 'GAME OVER',          26, Colors.redAccent,   -55);
-    _centered(canvas, 'SCORE  $score',       18, Colors.white70,    -18);
-    _centered(canvas, 'LEVEL  $level',       13, Colors.yellowAccent, 4);
-    _centered(canvas, 'STAGE  $stage',       13, Colors.cyanAccent,  22);
-    _centered(canvas, '🪙 COINS  $coins',    12, Colors.amber,       40);
-    _centered(canvas, 'BEST  $highScore',    11, Colors.white38,     56);
-    _centered(canvas, '▼ TAP RESTART',        9, Colors.white24,     74);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), Paint()..color = Colors.black.withOpacity(0.82));
+    _centered(canvas, 'GAME OVER',        26, Colors.redAccent,   -60);
+    _centered(canvas, 'SCORE  $score',    18, Colors.white70,     -22);
+    _centered(canvas, 'COMBO x$combo',    13, Colors.yellowAccent, -2);
+    _centered(canvas, 'STAGE  $stage',    13, Colors.cyanAccent,   16);
+    _centered(canvas, '🪙 COINS  $coins', 12, Colors.amber,        34);
+    _centered(canvas, 'BEST  $highScore', 11, Colors.white38,      52);
+    _centered(canvas, '▼ TAP RESTART',     9, Colors.white24,      70);
   }
 
   void _centered(Canvas canvas, String text, double fontSize, Color color, double dy) {
     final tp = TextPainter(
       text: TextSpan(text: text, style: TextStyle(color: color, fontSize: fontSize, fontWeight: FontWeight.bold, letterSpacing: 2,
-          shadows: [Shadow(color: color.withOpacity(0.5), blurRadius: 8)])),
+          shadows: [Shadow(color: color.withOpacity(0.6), blurRadius: 10)])),
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
     )..layout();
@@ -491,6 +565,7 @@ class SnakeGame extends FlameGame {
     levelNotifier.dispose();
     coinsNotifier.dispose();
     stageNotifier.dispose();
+    comboNotifier.dispose();
     super.onRemove();
   }
 }
