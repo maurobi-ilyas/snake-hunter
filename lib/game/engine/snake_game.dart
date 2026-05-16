@@ -21,7 +21,7 @@ import '../models/position_model.dart';
 class SnakeGame extends FlameGame {
   // ── Components ──────────────────────────────────────────
   late SnakeComponent snake;
-  late FoodComponent food;
+  List<FoodComponent> foods = [];
   late EnemySnakeComponent enemySnake;
   late BossComponent boss;
   List<ObstacleComponent> obstacles = [];
@@ -46,6 +46,8 @@ class SnakeGame extends FlameGame {
 
   // ── Particle pulse ────────────────────────────────────────
   double _pulseT = 0.0;
+  double _waterTime = 0.0;
+  List<DecorativeSnake> decoSnakes = [];
 
   // ── Skin & Settings ─────────────────────────────────────
   Color skinColor = Colors.greenAccent;
@@ -99,9 +101,15 @@ class SnakeGame extends FlameGame {
     direction     = Direction.right;
     _inputQueue.clear();
     _timeSinceLastTick = 0.0;
+    _waterTime = 0.0;
     _prevBody.clear();
     _prevEnemyBody.clear();
     _pulseT       = 0.0;
+    foods.clear();
+    decoSnakes.clear();
+    for (int i = 0; i < random.nextInt(3) + 3; i++) {
+      decoSnakes.add(DecorativeSnake(random));
+    }
     scoreNotifier.value = 0;
     levelNotifier.value = 1;
     coinsNotifier.value = 0;
@@ -152,7 +160,9 @@ class SnakeGame extends FlameGame {
   void update(double dt) {
     super.update(dt);
     _pulseT = (_pulseT + dt * 3.0) % (2 * pi);
+    _waterTime += dt;
     _timeSinceLastTick += dt;
+    for (final deco in decoSnakes) deco.update(dt);
     if (cameraShake) {
       Future.delayed(const Duration(milliseconds: 160), () => cameraShake = false);
     }
@@ -176,9 +186,15 @@ class SnakeGame extends FlameGame {
 
     snake.body.insert(0, head);
 
-    if (head == food.position) {
-      handleFoodEffect();
-      generateFood();
+    FoodComponent? eatenFood;
+    for (final f in foods) {
+      if (head == f.position) { eatenFood = f; break; }
+    }
+
+    if (eatenFood != null) {
+      handleFoodEffect(eatenFood);
+      foods.remove(eatenFood);
+      if (foods.isEmpty) generateFood();
     } else {
       snake.body.removeLast();
       combo = 0; // reset combo if no food eaten this tick
@@ -193,8 +209,8 @@ class SnakeGame extends FlameGame {
 
   // ── Food ─────────────────────────────────────────────────
 
-  void handleFoodEffect() {
-    switch (food.type) {
+  void handleFoodEffect(FoodComponent eaten) {
+    switch (eaten.type) {
       case FoodType.normal:
         score++;
         combo++;
@@ -258,30 +274,36 @@ class SnakeGame extends FlameGame {
   }
 
   void generateFood() {
-    final typeRoll = random.nextInt(10);
-    FoodType type;
-    if (typeRoll >= 8)      type = FoodType.poison;
-    else if (typeRoll >= 6) type = FoodType.speed;
-    else                    type = FoodType.normal;
+    int numFoods = random.nextInt(3) + 2; // 2 to 4 foods
+    foods.clear();
 
-    List<PositionModel> validPositions = [];
-    for (int r = 0; r < GameConfig.rows; r++) {
-      for (int c = 0; c < GameConfig.columns; c++) {
-        final pos = PositionModel(x: c, y: r);
-        if (!snake.body.contains(pos) &&
-            !enemySnake.body.contains(pos) &&
-            !obstacles.any((o) => o.position == pos) &&
-            !(bossMode && boss.position == pos)) {
-          validPositions.add(pos);
+    for (int i = 0; i < numFoods; i++) {
+      final typeRoll = random.nextInt(10);
+      FoodType type;
+      if (typeRoll >= 8)      type = FoodType.poison;
+      else if (typeRoll >= 6) type = FoodType.speed;
+      else                    type = FoodType.normal;
+
+      List<PositionModel> validPositions = [];
+      for (int r = 0; r < GameConfig.rows; r++) {
+        for (int c = 0; c < GameConfig.columns; c++) {
+          final pos = PositionModel(x: c, y: r);
+          if (!snake.body.contains(pos) &&
+              !enemySnake.body.contains(pos) &&
+              !obstacles.any((o) => o.position == pos) &&
+              !(bossMode && boss.position == pos) &&
+              !foods.any((f) => f.position == pos)) {
+            validPositions.add(pos);
+          }
         }
       }
-    }
 
-    if (validPositions.isNotEmpty) {
-      final pos = validPositions[random.nextInt(validPositions.length)];
-      food = FoodComponent(position: pos, type: type);
-    } else {
-      food = FoodComponent(position: PositionModel(x: 0, y: 0), type: type);
+      if (validPositions.isNotEmpty) {
+        final pos = validPositions[random.nextInt(validPositions.length)];
+        foods.add(FoodComponent(position: pos, type: type));
+      } else {
+        foods.add(FoodComponent(position: PositionModel(x: 0, y: 0), type: type));
+      }
     }
   }
 
@@ -367,18 +389,37 @@ class SnakeGame extends FlameGame {
       final d = dirs[random.nextInt(4)];
       head.x += d[0]; head.y += d[1];
     } else {
-      // Standard tracking
-      if (head.x < food.position.x) head.x++;
-      else if (head.x > food.position.x) head.x--;
-      else if (head.y < food.position.y) head.y++;
-      else if (head.y > food.position.y) head.y--;
+      // Standard tracking closest food
+      FoodComponent? targetFood;
+      if (foods.isNotEmpty) {
+        targetFood = foods.first;
+        double minDist = 9999;
+        for (final f in foods) {
+          double d = (f.position.x - head.x).abs() + (f.position.y - head.y).abs().toDouble();
+          if (d < minDist) { minDist = d; targetFood = f; }
+        }
+      }
+      if (targetFood != null) {
+        if (head.x < targetFood.position.x) head.x++;
+        else if (head.x > targetFood.position.x) head.x--;
+        else if (head.y < targetFood.position.y) head.y++;
+        else if (head.y > targetFood.position.y) head.y--;
+      }
     }
     head.x = head.x.clamp(0, GameConfig.columns - 1);
     head.y = head.y.clamp(0, GameConfig.rows - 1);
     enemySnake.body.insert(0, head);
-    enemySnake.body.removeLast();
+    
+    FoodComponent? eaten;
+    for (final f in foods) { if (head == f.position) eaten = f; }
+    if (eaten != null) {
+      foods.remove(eaten);
+      if (foods.isEmpty) generateFood();
+    } else {
+      enemySnake.body.removeLast();
+    }
+
     if (head == snake.body.first) gameOver();
-    if (head == food.position) generateFood();
   }
 
   void moveBoss() {
@@ -433,14 +474,34 @@ class SnakeGame extends FlameGame {
     canvas.save();
     canvas.translate(shakeX, shakeY);
 
-    // Background
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), Paint()..color = map.backgroundColor);
-    super.render(canvas);
-
-    if (level < 5) {
-      drawGrid(canvas, map.gridColor);
+    // River Theme Background
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), Paint()..color = const Color(0xFF031024)); // Dark blue neon
+    
+    // Draw water currents / ripples
+    final waterPaint = Paint()..color = Colors.cyan.withOpacity(0.06)..style = PaintingStyle.stroke..strokeWidth = 2;
+    for (int i = 0; i < 8; i++) {
+      double yOffset = (i * size.y / 8 + _waterTime * 15) % size.y;
+      Path wavePath = Path();
+      wavePath.moveTo(0, yOffset);
+      for (double x = 0; x <= size.x; x += 40) {
+        wavePath.lineTo(x, yOffset + sin((x / 50) + _waterTime * 2) * 12);
+      }
+      canvas.drawPath(wavePath, waterPaint);
     }
     
+    // Draw water particles
+    final particlePaint = Paint()..color = Colors.cyanAccent.withOpacity(0.25);
+    for (int i = 0; i < 20; i++) {
+       double px = (i * 73 + _waterTime * 25 * (i % 2 == 0 ? 1 : 1.5)) % size.x;
+       double py = (i * 47 + _waterTime * 10) % size.y;
+       canvas.drawCircle(Offset(px, py), 1.5, particlePaint);
+    }
+
+    super.render(canvas);
+
+    if (level < 5) drawGrid(canvas, map.gridColor);
+    
+    drawDecorativeSnakes(canvas);
     drawObstacles(canvas);
     drawFood(canvas);
     drawEnemySnake(canvas);
@@ -615,36 +676,68 @@ class SnakeGame extends FlameGame {
   }
 
   void drawFood(Canvas canvas) {
-    final foodColor = switch (food.type) {
-      FoodType.normal => Colors.redAccent,
-      FoodType.poison => Colors.purpleAccent,
-      FoodType.speed  => Colors.blueAccent,
-    };
+    for (final food in foods) {
+      final foodColor = switch (food.type) {
+        FoodType.normal => Colors.redAccent,
+        FoodType.poison => Colors.purpleAccent,
+        FoodType.speed  => Colors.blueAccent,
+      };
 
-    final cx = food.position.x * GameConfig.cellSize + GameConfig.cellSize / 2;
-    final cy = food.position.y * GameConfig.cellSize + GameConfig.cellSize / 2;
-    final r = GameConfig.cellSize / 2 - 2;
+      final cx = food.position.x * GameConfig.cellSize + GameConfig.cellSize / 2;
+      final cy = food.position.y * GameConfig.cellSize + GameConfig.cellSize / 2;
+      final r = GameConfig.cellSize / 2 - 2;
 
-    // Animated outer particle glow
-    final outerR = r + 5 + sin(_pulseT) * 2;
-    canvas.drawCircle(Offset(cx, cy), outerR,
-      Paint()..color = foodColor.withOpacity(0.18)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
+      // Animated outer particle glow
+      final outerR = r + 5 + sin(_pulseT) * 2;
+      canvas.drawCircle(Offset(cx, cy), outerR,
+        Paint()..color = foodColor.withOpacity(0.18)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
 
-    // Inner glow
-    canvas.drawCircle(Offset(cx, cy), r + 2,
-      Paint()..color = foodColor.withOpacity(0.3)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+      // Inner glow
+      canvas.drawCircle(Offset(cx, cy), r + 2,
+        Paint()..color = foodColor.withOpacity(0.3)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
 
-    // Body
-    canvas.drawCircle(Offset(cx, cy), r, Paint()..color = foodColor);
+      // Body
+      canvas.drawCircle(Offset(cx, cy), r, Paint()..color = foodColor);
 
-    // Shine
-    canvas.drawCircle(Offset(cx - r * 0.3, cy - r * 0.3), r * 0.3, Paint()..color = Colors.white.withOpacity(0.5));
+      // Shine
+      canvas.drawCircle(Offset(cx - r * 0.3, cy - r * 0.3), r * 0.3, Paint()..color = Colors.white.withOpacity(0.5));
 
-    // Type label
-    if (food.type != FoodType.normal) {
-      final label = food.type == FoodType.poison ? '☠' : '⚡';
-      final tp = TextPainter(text: TextSpan(text: label, style: const TextStyle(fontSize: 9)), textDirection: TextDirection.ltr)..layout();
-      tp.paint(canvas, Offset(cx - tp.width / 2, cy - r - 11));
+      // Little floating particles around food
+      for (int i = 0; i < 3; i++) {
+        double pA = _pulseT * 3 + (i * pi * 2 / 3);
+        double pR = r + 4;
+        canvas.drawCircle(Offset(cx + cos(pA)*pR, cy + sin(pA)*pR), 1.5, Paint()..color = foodColor.withOpacity(0.8));
+      }
+
+      // Type label
+      if (food.type != FoodType.normal) {
+        final label = food.type == FoodType.poison ? '☠' : '⚡';
+        final tp = TextPainter(text: TextSpan(text: label, style: const TextStyle(fontSize: 9)), textDirection: TextDirection.ltr)..layout();
+        tp.paint(canvas, Offset(cx - tp.width / 2, cy - r - 11));
+      }
+    }
+  }
+
+  void drawDecorativeSnakes(Canvas canvas) {
+    for (final deco in decoSnakes) {
+      for (int i = deco.body.length - 1; i >= 0; i--) {
+        final pt = deco.body[i];
+        final t = i / deco.body.length.clamp(1, 99);
+        final c = Color.lerp(deco.color, Colors.black, t)!;
+        final r = GameConfig.cellSize / 2.8;
+
+        if (i == 0) {
+          canvas.drawCircle(pt, r + 2, Paint()..color = deco.color.withOpacity(0.12)..maskFilter = const MaskFilter.blur(BlurStyle.outer, 4));
+        }
+
+        canvas.drawCircle(pt, r, Paint()..color = c.withOpacity(0.35));
+
+        if (i == 0) {
+           final eyeP = Paint()..color = Colors.white.withOpacity(0.4);
+           canvas.drawCircle(Offset(pt.dx + 2, pt.dy - 2), 1.0, eyeP);
+           canvas.drawCircle(Offset(pt.dx + 2, pt.dy + 2), 1.0, eyeP);
+        }
+      }
     }
   }
 
@@ -742,5 +835,55 @@ class SnakeGame extends FlameGame {
     stageNotifier.dispose();
     comboNotifier.dispose();
     super.onRemove();
+  }
+}
+
+class DecorativeSnake {
+  double x = 0;
+  double y = 0;
+  double vx = 0;
+  double vy = 0;
+  double speed = 0;
+  Color color = Colors.white;
+  List<Offset> body = [];
+  int length = 0;
+  double _time = 0;
+
+  DecorativeSnake(Random random) {
+    x = random.nextDouble() * GameConfig.columns * GameConfig.cellSize;
+    y = random.nextDouble() * GameConfig.rows * GameConfig.cellSize;
+    
+    if (random.nextBool()) {
+      vx = random.nextBool() ? 1 : -1; vy = 0;
+    } else {
+      vx = 0; vy = random.nextBool() ? 1 : -1;
+    }
+    speed = 25 + random.nextDouble() * 25;
+    length = 8 + random.nextInt(8);
+    
+    final colors = [Colors.yellowAccent, Colors.greenAccent, Colors.redAccent, Colors.purpleAccent, Colors.cyanAccent];
+    color = colors[random.nextInt(colors.length)];
+  }
+
+  void update(double dt) {
+    _time += dt;
+    double wave = sin(_time * 3) * 15;
+    double rx = x + (vy != 0 ? wave : 0);
+    double ry = y + (vx != 0 ? wave : 0);
+
+    if (body.isEmpty || (Offset(rx, ry) - body.first).distance > GameConfig.cellSize * 0.8) {
+      body.insert(0, Offset(rx, ry));
+      if (body.length > length) body.removeLast();
+    }
+
+    x += vx * speed * dt;
+    y += vy * speed * dt;
+
+    double maxW = GameConfig.columns * GameConfig.cellSize;
+    double maxH = GameConfig.rows * GameConfig.cellSize;
+    if (x < -50) x = maxW + 50;
+    if (x > maxW + 50) x = -50;
+    if (y < -50) y = maxH + 50;
+    if (y > maxH + 50) y = -50;
   }
 }
