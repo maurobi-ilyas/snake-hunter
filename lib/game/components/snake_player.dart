@@ -1,9 +1,9 @@
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
 import 'package:flame/effects.dart';
-import 'package:flame/particles.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'prey_animal.dart';
 import 'floating_text.dart';
 import '../engine/snake_hunter_game.dart';
@@ -11,50 +11,67 @@ import '../../services/juice_service.dart';
 
 class SnakePlayer extends PositionComponent
     with HasGameRef<SnakeHunterGame>, CollisionCallbacks {
-  static const double baseSpeed = 220.0;
+  static const double baseSpeed = 180.0;
+  static const double biteRadius = 28.0;
+  static const double segmentDistance = 12.0;
 
   /// Desired velocity from joystick input
   Vector2 _targetVelocity = Vector2.zero();
   /// Smoothed, actual velocity for rendering & movement
   Vector2 velocity = Vector2.zero();
+  Vector2 _lastDirection = Vector2(1, 0);
 
-  final List<Vector2> bodyPositions = [];
-  final int initialLength = 5;
+  // Trail positions for body following
+  final List<Vector2> _trail = [];
+
+  final int initialLength = 4;
   late int currentLength;
+  late int _totalSegments;
 
-  // Micro-animation timers
+  // Animation states
   double _tongueTimer = 0;
   bool _isTongueOut = false;
   double _blinkTimer = 0;
   bool _isBlinking = false;
-
-  // AAA Polish state
+  double _happyTimer = 0;
+  double _hungryTimer = 5.0;
+  
+  // Polish state
   double _squashAmount = 1.0;
   double _stretchAmount = 1.0;
   double _impactTimer = 0;
-
-  // Sway animation
   double _swayTimer = 0;
-  static const double _swayFreq = 4.0;
-  static const double _swayAmp = 0.04; // radians
-
-  // Spawn-safe flag
+  
+  // Eating state
+  bool _isEating = false;
+  double _eatingTimer = 0;
+  
+  // Head properties
+  final double _headSize = 36;
+  final double _segmentSize = 20;
+  
+  // Movement feel
+  static const double _turnSmooth = 0.3;
+  static const double _accel = 12.0;
+  
   bool _loaded = false;
 
   SnakePlayer() {
     currentLength = initialLength;
+    _totalSegments = initialLength * 12;
   }
 
   @override
   Future<void> onLoad() async {
-    size = Vector2.all(36);
+    size = Vector2.all(_headSize);
     anchor = Anchor.center;
     position = gameRef.size / 2;
-
-    for (int i = 0; i < currentLength * 10; i++) {
-      bodyPositions.add(position.clone());
+    
+    // Initialize trail with head position
+    for (int i = 0; i < _totalSegments; i++) {
+      _trail.add(position.clone());
     }
-
+    
     add(CircleHitbox());
     _loaded = true;
   }
@@ -64,191 +81,291 @@ class SnakePlayer extends PositionComponent
     super.update(dt);
     if (!_loaded) return;
 
-    // ── Input ──────────────────────────────────────────────────────────────
+    // Input handling
     if (!gameRef.joystick.relativeDelta.isZero()) {
       _targetVelocity = gameRef.joystick.relativeDelta * baseSpeed;
     } else {
       _targetVelocity = Vector2.zero();
     }
 
-    // Smooth velocity interpolation (lerp) — eliminates kaku feeling
-    velocity = Vector2(
-      _lerp(velocity.x, _targetVelocity.x, dt * 8),
-      _lerp(velocity.y, _targetVelocity.y, dt * 8),
-    );
+    // Smooth acceleration/deceleration
+    final targetLen = _targetVelocity.length;
+    final currentLen = velocity.length;
+    
+    if (targetLen > 0) {
+      final targetVel = _targetVelocity.normalized() * math.min(targetLen, baseSpeed);
+      velocity = Vector2(
+        _lerp(velocity.x, targetVel.x, dt * _accel),
+        _lerp(velocity.y, targetVel.y, dt * _accel),
+      );
+      _lastDirection = velocity.normalized();
+    } else {
+      velocity = velocity * (1 - dt * 5);
+    }
 
-    // Stop very small drift
-    if (velocity.length < 2) velocity = Vector2.zero();
-
-    // Face direction of travel
-    if (velocity.length > 10) {
+    // Face direction
+    if (velocity.length > 5) {
       angle = velocity.screenAngle();
     }
 
-    // ── Movement ────────────────────────────────────────────────────────────
-    position.add(velocity * dt);
+    // Movement
+    position += velocity * dt;
 
-    // ── WORLD WRAP (critical bug fix) ───────────────────────────────────────
+    // World wrap
     final w = gameRef.canvasSize.x;
     final h = gameRef.canvasSize.y;
-    if (position.x < 0)  position.x = w;
-    if (position.x > w)  position.x = 0;
-    if (position.y < 0)  position.y = h;
-    if (position.y > h)  position.y = 0;
+    if (position.x < 0) position.x = w;
+    if (position.x > w) position.x = 0;
+    if (position.y < 0) position.y = h;
+    if (position.y > h) position.y = 0;
 
-    // ── Squash & Stretch ────────────────────────────────────────────────────
+    // Squash & stretch based on speed
     final speedRatio = velocity.length / baseSpeed;
-    _stretchAmount = _lerp(_stretchAmount, 1.0 + speedRatio * 0.12, dt * 10);
-    _squashAmount  = _lerp(_squashAmount,  1.0 - speedRatio * 0.06, dt * 10);
-
+    _stretchAmount = _lerp(_stretchAmount, 1.0 + speedRatio * 0.15, dt * 8);
+    _squashAmount = _lerp(_squashAmount, 1.0 - speedRatio * 0.08, dt * 8);
+    
     if (_impactTimer > 0) {
       _impactTimer -= dt;
-      _stretchAmount = 1.3;
-      _squashAmount  = 0.75;
+      _stretchAmount = 1.35;
+      _squashAmount = 0.7;
     }
 
-    // ── Sway animation ──────────────────────────────────────────────────────
-    if (velocity.length > 10) {
-      _swayTimer += dt;
+    // Timers
+    if (_happyTimer > 0) _happyTimer -= dt;
+    _hungryTimer -= dt;
+    if (_hungryTimer < 0) _hungryTimer = 5.0;
+    
+    _swayTimer += velocity.length * dt;
+    
+    if (_isEating) {
+      _eatingTimer -= dt;
+      if (_eatingTimer <= 0) _isEating = false;
     }
 
-    // ── Body trail ──────────────────────────────────────────────────────────
-    bodyPositions.insert(0, position.clone());
-    if (bodyPositions.length > currentLength * 10) {
-      bodyPositions.removeLast();
+    // Update trail for body follow
+    _trail.insert(0, position.clone());
+    while (_trail.length > _totalSegments) {
+      _trail.removeLast();
     }
 
-    // ── Micro-animations ────────────────────────────────────────────────────
+    // Micro animations
     _tongueTimer -= dt;
     if (_tongueTimer <= 0) {
       _isTongueOut = !_isTongueOut;
-      _tongueTimer = _isTongueOut ? 0.2 : 2.0 + math.Random().nextDouble() * 2.0;
+      _tongueTimer = _isTongueOut ? 0.15 : 2.0 + math.Random().nextDouble() * 3.0;
     }
 
     _blinkTimer -= dt;
     if (_blinkTimer <= 0) {
       _isBlinking = !_isBlinking;
-      _blinkTimer = _isBlinking ? 0.1 : 3.0 + math.Random().nextDouble() * 4.0;
+      _blinkTimer = _isBlinking ? 0.12 : 3.0 + math.Random().nextDouble() * 4.0;
     }
   }
 
   @override
   void render(Canvas canvas) {
-    final skin = gameRef.gameState.currentSkin;
-
-    // ── Body segments ───────────────────────────────────────────────────────
-    for (int i = currentLength - 1; i >= 1; i--) {
-      final index = i * 8;
-      if (index >= bodyPositions.length) continue;
-
-      final pos = bodyPositions[index];
+    final speedRatio = velocity.length / baseSpeed;
+    
+    // Render body segments with smooth follow
+    for (int i = 1; i < currentLength * 10 && i < _trail.length; i++) {
+      if (i * 1 >= _trail.length) break;
+      
+      final pos = _trail[i * 1];
       final relX = pos.x - position.x;
-      final relY = pos.y - position.y;
-      final segRadius = (size.x / 2.2) * (1 - (i / (currentLength * 2.0)));
-      final segAlpha = 1.0 - (i / (currentLength + 1.0)) * 0.4;
+      const relY = 0.0;
+      
+      // Wave offset for organic movement
+      final waveOffset = math.sin(_swayTimer * 6 + i * 0.5) * 1.5 * speedRatio;
+      
+      final segRadius = _segmentSize * math.max(0.3, 1.0 - i / (currentLength * 10.0)) * 0.7;
+      final segAlpha = 1.0 - (i / (currentLength * 10.0)) * 0.5;
 
       final bodyPaint = Paint()
-        ..color = skin.bodyColor.withOpacity(segAlpha);
+        ..color = const Color(0xFF00BCD4).withOpacity(segAlpha * 0.9);
 
-      canvas.drawCircle(Offset(relX, relY), segRadius.clamp(4, 20), bodyPaint);
+      canvas.drawCircle(Offset(relX + waveOffset, relY), segRadius, bodyPaint);
+      
+      // Segment highlight
+      if (segRadius > 3) {
+        final highlightPaint = Paint()
+          ..color = const Color(0xFF4DD0E1).withOpacity(segAlpha * 0.5);
+        canvas.drawCircle(Offset(relX + waveOffset - 2, relY - 2), segRadius * 0.4, highlightPaint);
+      }
     }
 
-    // ── Tongue ──────────────────────────────────────────────────────────────
-    if (_isTongueOut) {
+    // Tongue
+    if (_isTongueOut && !_isEating) {
       final tonguePaint = Paint()
-        ..color = Colors.redAccent
-        ..strokeWidth = 2
+        ..color = const Color(0xFFFF8A80)
+        ..strokeWidth = 2.2
         ..strokeCap = StrokeCap.round;
-      final tipX = size.x / 2 + 10;
-      canvas.drawLine(Offset(size.x / 2, 0), Offset(tipX, 0), tonguePaint);
+      final tipX = _headSize / 2 + 10;
+      canvas.drawLine(Offset(_headSize / 2, 0), Offset(tipX, 0), tonguePaint);
       canvas.drawLine(Offset(tipX, 0), Offset(tipX + 5, -4), tonguePaint);
       canvas.drawLine(Offset(tipX, 0), Offset(tipX + 5, 4), tonguePaint);
     }
 
-    // ── Head (with sway + squash/stretch) ───────────────────────────────────
-    final sway = math.sin(_swayTimer * _swayFreq) * _swayAmp;
+    // Head
+    final headSway = math.sin(_swayTimer * 3) * 0.02 * speedRatio;
     canvas.save();
-    canvas.rotate(sway);
+    canvas.rotate(headSway);
     canvas.scale(_stretchAmount, _squashAmount);
 
-    // Head glow
+    // Glow
     final glowPaint = Paint()
-      ..color = skin.headColor.withOpacity(0.25)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-    canvas.drawCircle(Offset.zero, size.x / 2 + 4, glowPaint);
+      ..color = const Color(0xFF48FAD9).withOpacity(0.35)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+    canvas.drawCircle(Offset.zero, _headSize / 2 + 5, glowPaint);
 
-    // Head fill
-    final headPaint = Paint()..color = skin.headColor;
-    canvas.drawCircle(Offset.zero, size.x / 2, headPaint);
+    // Head body
+    final headPaint = Paint()
+      ..shader = ui.Gradient.radial(
+        Offset.zero,
+        _headSize / 2,
+        [const Color(0xFF26C6DA), const Color(0xFF00ACC1)],
+      );
+    canvas.drawCircle(Offset.zero, _headSize / 2, headPaint);
 
     // Eyes
-    if (!_isBlinking) {
-      final eyeWhitePaint = Paint()..color = Colors.white;
-      final eyePaint = Paint()..color = skin.eyeColor;
-      final pupilPaint = Paint()..color = Colors.black;
-
-      canvas.drawCircle(Offset(size.x * 0.2, -size.x * 0.22), 7, eyeWhitePaint);
-      canvas.drawCircle(Offset(size.x * 0.2,  size.x * 0.22), 7, eyeWhitePaint);
-      canvas.drawCircle(Offset(size.x * 0.2, -size.x * 0.22), 5, eyePaint);
-      canvas.drawCircle(Offset(size.x * 0.2,  size.x * 0.22), 5, eyePaint);
-      canvas.drawCircle(Offset(size.x * 0.28, -size.x * 0.22), 2, pupilPaint);
-      canvas.drawCircle(Offset(size.x * 0.28,  size.x * 0.22), 2, pupilPaint);
+    if (!_isBlinking && !_isEating) {
+      _renderEyes(canvas, speedRatio);
+    } else if (_isBlinking) {
+      _renderBlink(canvas);
     } else {
-      final blinkPaint = Paint()
-        ..color = Colors.black54
-        ..strokeWidth = 2.5
-        ..strokeCap = StrokeCap.round;
-      canvas.drawLine(
-        Offset(size.x * 0.12, -size.x * 0.22),
-        Offset(size.x * 0.3, -size.x * 0.22),
-        blinkPaint,
-      );
-      canvas.drawLine(
-        Offset(size.x * 0.12, size.x * 0.22),
-        Offset(size.x * 0.3,  size.x * 0.22),
-        blinkPaint,
-      );
+      _renderEatingMouth(canvas);
     }
-
+    
     canvas.restore();
   }
 
-  @override
-  void onCollisionStart(
-      Set<Vector2> intersectionPoints, PositionComponent other) {
-    super.onCollisionStart(intersectionPoints, other);
-    if (other is PreyAnimal) {
-      other.removeFromParent();
-      gameRef.gameState.addScore(100);
-      currentLength = math.min(currentLength + 1, 50);
-      _impactTimer = 0.2;
+  void _renderEyes(Canvas canvas, double speedRatio) {
+    final eyeWhite = Paint()..color = Colors.white;
+    final pupil = Paint()..color = Colors.black;
+    final highlight = Paint()..color = Colors.white70;
 
-      JuiceService.success();
-      gameRef.add(FloatingText('+100', position.clone()));
+    final pupilX = _lastDirection.x * 3;
+    final pupilY = _lastDirection.y * 2;
 
-      // Camera shake
-      gameRef.camera.viewfinder.add(
-        MoveEffect.by(
-          Vector2(5, 5),
-          EffectController(duration: 0.04, reverseDuration: 0.04, repeatCount: 3),
-        ),
-      );
+    // Left eye
+    canvas.drawCircle(Offset(_headSize * 0.2, -_headSize * 0.22), 8, eyeWhite);
+    canvas.drawCircle(Offset(_headSize * 0.28 + pupilX, -_headSize * 0.22 + pupilY), 3.5, pupil);
+    canvas.drawCircle(Offset(_headSize * 0.23 + pupilX, -_headSize * 0.27 + pupilY), 2, highlight);
 
-      // Pooled particle burst
-      gameRef.add(
-        gameRef.particlePool.get(
-          other.position,
-          gameRef.gameState.currentSkin.headColor,
-        ),
-      );
+    // Right eye
+    canvas.drawCircle(Offset(_headSize * 0.2, _headSize * 0.22), 8, eyeWhite);
+    canvas.drawCircle(Offset(_headSize * 0.28 + pupilX, _headSize * 0.22 + pupilY), 3.5, pupil);
+    canvas.drawCircle(Offset(_headSize * 0.23 + pupilX, _headSize * 0.17 + pupilY), 2, highlight);
 
-      add(ScaleEffect.by(
-        Vector2.all(1.25),
-        EffectController(duration: 0.08, reverseDuration: 0.12),
-      ));
+    // Cheeks when happy
+    if (_happyTimer > 0) {
+      final blush = Paint()..color = const Color(0xFFFFAB91).withOpacity(0.8);
+      canvas.drawCircle(Offset(_headSize * 0.08, -_headSize * 0.12), 3, blush);
+      canvas.drawCircle(Offset(_headSize * 0.08, _headSize * 0.12), 3, blush);
+    }
+
+    // Expression
+    if (_happyTimer > 0 && _happyTimer < 0.3) {
+      _renderHappyExpression(canvas);
+    } else if (_hungryTimer < 1.5) {
+      _renderHungryExpression(canvas);
+    } else {
+      _renderNeutralExpression(canvas);
     }
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
+  void _renderNeutralExpression(Canvas canvas) {
+    final smile = Paint()
+      ..color = const Color(0xFF263238)
+      ..strokeWidth = 1.8
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(_headSize * 0.12, _headSize * 0.12), Offset(_headSize * 0.32, _headSize * 0.12), smile);
+  }
+
+  void _renderHappyExpression(Canvas canvas) {
+    final smile = Paint()
+      ..color = const Color(0xFF263238)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(_headSize * 0.1, _headSize * 0.15), Offset(_headSize * 0.35, _headSize * 0.15), smile);
+  }
+
+  void _renderHungryExpression(Canvas canvas) {
+    final expression = Paint()
+      ..color = const Color(0xFFFF9800)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(_headSize * 0.15, _headSize * 0.15), Offset(_headSize * 0.3, _headSize * 0.15), expression);
+    canvas.drawLine(Offset(_headSize * 0.22, _headSize * 0.18), Offset(_headSize * 0.28, _headSize * 0.22), expression);
+  }
+
+  void _renderEatingMouth(Canvas canvas) {
+    final mouth = Paint()
+      ..color = const Color(0xFF263238)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(_headSize * 0.25, _headSize * 0.12), 4, mouth);
+  }
+
+  void _renderBlink(Canvas canvas) {
+    final blink = Paint()
+      ..color = Colors.black87
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(_headSize * 0.08, -_headSize * 0.22), Offset(_headSize * 0.32, -_headSize * 0.22), blink);
+    canvas.drawLine(Offset(_headSize * 0.08, _headSize * 0.22), Offset(_headSize * 0.32, _headSize * 0.22), blink);
+  }
+
+  @override
+  void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other) {
+    super.onCollisionStart(intersectionPoints, other);
+    if (other is PreyAnimal) {
+      _eatPrey(other);
+    }
+  }
+
+  void _eatPrey(PreyAnimal prey) {
+    _isEating = true;
+    _eatingTimer = 0.25;
+    _happyTimer = 0.6;
+    _hungryTimer = 5.0;
+    
+    prey.removeFromParent();
+    gameRef.gameState.addScore(100);
+    currentLength = math.min(currentLength + 1, 25);
+    _totalSegments = currentLength * 12;
+    
+    JuiceService.success();
+    
+    // Slow motion eating effect
+    gameRef.timeScale = 0.7;
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (gameRef.timeScale < 1.0) gameRef.timeScale = 1.0;
+    });
+    
+    gameRef.add(FloatingText('+100', position.clone()));
+
+    // Camera effects
+    gameRef.camera.viewfinder.add(
+      MoveEffect.by(
+        Vector2(8, 8),
+        EffectController(duration: 0.05, reverseDuration: 0.05, repeatCount: 2),
+      ),
+    );
+
+    gameRef.add(
+      gameRef.particlePool.get(
+        prey.position,
+        const Color(0xFF00BCD4),
+      ),
+    );
+
+    add(ScaleEffect.by(
+      Vector2.all(1.2),
+      EffectController(duration: 0.1, reverseDuration: 0.15),
+    ));
+  }
+
   double _lerp(double a, double b, double t) => a + (b - a) * t.clamp(0, 1);
 }

@@ -1,7 +1,7 @@
 /**
  * FEATURE_TRACKER.do.js - Master Feature Registry
  * Project: SNAKE HUNTER — X10THINK Gold Master Production
- * Last Updated: 2026-05-15
+ * Last Updated: 2026-05-16
  */
 
 const FeatureTracker = {
@@ -26,7 +26,20 @@ const FeatureTracker = {
     floatingScore: "COMPLETE — +100 popup on capture",
     cameraShake: "COMPLETE — MoveEffect on eat",
     hapticFeedback: "COMPLETE — JuiceService (light/success/heavy)",
-    gameOverSlowdown: "COMPLETE — TimeScale easing to 0.1x on death"
+    gameOverSlowdown: "COMPLETE — TimeScale easing to 0.1x on death",
+    x10thinkVisualOverhaul: "COMPLETE — Premium casual identity transformation",
+    environmentDepth: "COMPLETE — Layered environment with parallax fake",
+    atmosphericParticles: "COMPLETE — Floating leaves and ambient motion",
+    snakePersonality: "COMPLETE — Expressive mascot with smile and bright eyes",
+    animalExpressions: "COMPLETE — Panic animations and scared faces"
+  },
+  huntingSystem: {
+    biteRadius: "COMPLETE — 25px approach requirement",
+    escapeMechanic: "COMPLETE — Animals can escape, taunt on success",
+    panicAnimation: "COMPLETE — Shake, scale, expression change",
+    tauntAnimation: "COMPLETE — Wink, tongue, victory dance",
+    comboSystem: "COMPLETE — 2.5s window, 15% per streak, 3x cap",
+    animalTypes: "COMPLETE — Mouse, rabbit, frog, bird, chick"
   },
   systems: {
     antiCrash: "COMPLETE — Global ErrorService + WidgetsBindingObserver",
@@ -38,7 +51,7 @@ const FeatureTracker = {
   },
   ui: {
     mainMenu: "COMPLETE — Haptic micro-interactions",
-    hud: "COMPLETE — Score, combo, timer",
+    hud: "COMPLETE — Score, combo, timer with glassmorphism",
     gameOver: "COMPLETE — Score recap screen",
     leaderboard: "COMPLETE",
     settings: "COMPLETE",
@@ -47,14 +60,15 @@ const FeatureTracker = {
   buildPipeline: {
     androidRelease: "COMPLETE — R8 minify + resource shrink + ABI split",
     aabBundle: "PARTIAL — Strip debug symbols warning (env issue)",
-    releaseApk: "COMPLETE — 45.2MB signed APK",
+    releaseApk: "COMPLETE — optimized signed APK",
     playStoreAssets: "PREPARED — PLAYSTORE_READY.do.js finalized"
   },
   futureExpansion: {
     skinSystem: "FOUNDATION READY",
     onlineLeaderboard: "ARCHITECTURE PREPARED",
     challengeMode: "ARCHITECTURE PREPARED",
-    seasonalContent: "ARCHITECTURE PREPARED"
+    seasonalContent: "ARCHITECTURE PREPARED",
+    specialAnimals: "READY — Golden/fast/giant variants planned"
   }
 };
 

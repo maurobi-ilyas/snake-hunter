@@ -1,30 +1,43 @@
+import 'dart:math';
 import '../game/components/prey_animal.dart';
 
 class PreyPool {
-  final List<PreyAnimal> _ratPool = [];
-  final List<PreyAnimal> _rabbitPool = [];
-  final List<PreyAnimal> _frogPool = [];
+  final List<PreyAnimal> _pool = [];
+  final List<AnimalType> _typeWeights = [
+    AnimalType.mouse, AnimalType.mouse, AnimalType.mouse, // 50% mouse
+    AnimalType.rabbit, AnimalType.rabbit, // 33% rabbit  
+    AnimalType.frog, // 17% frog
+    AnimalType.bird, // 8% bird
+    AnimalType.chick // 8% chick
+  ];
+  final Random _random = Random();
 
-  PreyAnimal get(int type) {
-    List<PreyAnimal> pool;
-    if (type == 0) pool = _ratPool;
-    else if (type == 1) pool = _rabbitPool;
-    else pool = _frogPool;
-
-    if (pool.isNotEmpty) {
-      final prey = pool.removeLast();
+  PreyAnimal get([int? type]) {
+    if (_pool.isNotEmpty) {
+      final prey = _pool.removeLast();
       prey.state = AIState.wandering;
       return prey;
     }
 
-    if (type == 0) return PreyAnimal(type: 0, baseSpeed: 100);
-    if (type == 1) return PreyAnimal(type: 1, baseSpeed: 140);
-    return PreyAnimal(type: 2, baseSpeed: 120);
+    // Select animal type based on weights or specific type
+    final animalType = type != null 
+        ? AnimalType.values[type % AnimalType.values.length]
+        : _typeWeights[_random.nextInt(_typeWeights.length)];
+
+    // Base speeds for each animal type
+    final double baseSpeed = switch (animalType) {
+      AnimalType.mouse => 100.0,
+      AnimalType.rabbit => 140.0,
+      AnimalType.frog => 120.0,
+      AnimalType.bird => 180.0,
+      AnimalType.chick => 130.0,
+    };
+
+    return PreyAnimal(type: animalType, speed: baseSpeed);
   }
 
   void release(PreyAnimal prey) {
-    if (prey.type == 0) _ratPool.add(prey);
-    else if (prey.type == 1) _rabbitPool.add(prey);
-    else _frogPool.add(prey);
+    prey.state = AIState.eaten;
+    _pool.add(prey);
   }
 }
