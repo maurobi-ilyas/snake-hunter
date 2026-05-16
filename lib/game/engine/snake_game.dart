@@ -225,7 +225,13 @@ class SnakeGame extends FlameGame {
         break;
 
       case FoodType.poison:
-        gameOver(); return;
+        score = (score - 5).clamp(0, 99999);
+        combo = 0;
+        scoreNotifier.value = score;
+        comboNotifier.value = combo;
+        cameraShake = true;
+        EffectService.vibrateBossHit();
+        break;
 
       case FoodType.speed:
         score += 2;
