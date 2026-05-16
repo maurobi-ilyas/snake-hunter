@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'core/services/firestore_service.dart';
 import 'core/services/local_storage_service.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/splash_screen.dart';
@@ -22,6 +23,7 @@ void main() async {
   // Firebase init — graceful degradation
   try {
     await Firebase.initializeApp();
+    FirestoreService.markAvailable(); // ✅ Mark safe to use
   } catch (e) {
     debugPrint('[Firebase] Not configured yet: $e');
   }
