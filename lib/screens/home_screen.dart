@@ -7,6 +7,7 @@ import '../core/services/local_storage_service.dart';
 import 'achievement_screen.dart';
 import 'game_screen.dart';
 import 'leaderboard_screen.dart';
+import 'mission_screen.dart';
 import 'settings_screen.dart';
 import 'shop_screen.dart';
 
@@ -189,7 +190,9 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 14),
               _NeonMenuButton(label: '🎖  ACHIEVEMENT',  color: Colors.purpleAccent,     delay: 500, onTap: () => _navigate(const AchievementScreen())),
               const SizedBox(height: 14),
-              _NeonMenuButton(label: '⚙  SETTINGS',     color: Colors.white54,          delay: 600, onTap: () => _navigate(const SettingsScreen())),
+              _NeonMenuButton(label: '🎯  MISSIONS',     color: Colors.cyanAccent,       delay: 600, onTap: () => _navigate(const MissionScreen())),
+              const SizedBox(height: 14),
+              _NeonMenuButton(label: '⚙  SETTINGS',     color: Colors.white54,          delay: 700, onTap: () => _navigate(const SettingsScreen())),
 
               const Spacer(),
 
