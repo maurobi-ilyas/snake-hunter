@@ -14,6 +14,8 @@ class LocalStorageService {
   static const _keyMusic = 'music_enabled';
   static const _keyLastReward = 'last_reward_date';
   static const _keyDifficulty = 'game_difficulty';
+  static const _keyTheme = 'selected_theme';
+  static const _keyTrail = 'selected_trail';
 
   /// Must be called once in main() before runApp.
   static Future<void> init() async {
@@ -90,6 +92,73 @@ class LocalStorageService {
       await p.setString('owned_skins', owned.join(','));
       _prefs = p;
     }
+  }
+
+  // ── THEME ────────────────────────────────────────────────
+  
+  static String getTheme() {
+    return _prefs?.getString(_keyTheme) ?? 'cyber_river';
+  }
+
+  static Future<void> saveTheme(String themeId) async {
+    final p = _prefs ?? await SharedPreferences.getInstance();
+    await p.setString(_keyTheme, themeId);
+    _prefs = p;
+  }
+
+  static List<String> getOwnedThemes() {
+    final raw = _prefs?.getString('owned_themes') ?? 'cyber_river';
+    return raw.split(',');
+  }
+
+  static Future<void> addOwnedTheme(String themeId) async {
+    final p = _prefs ?? await SharedPreferences.getInstance();
+    final owned = getOwnedThemes();
+    if (!owned.contains(themeId)) {
+      owned.add(themeId);
+      await p.setString('owned_themes', owned.join(','));
+      _prefs = p;
+    }
+  }
+
+  // ── TRAIL ────────────────────────────────────────────────
+  
+  static String getTrail() {
+    return _prefs?.getString(_keyTrail) ?? 'none';
+  }
+
+  static Future<void> saveTrail(String trailId) async {
+    final p = _prefs ?? await SharedPreferences.getInstance();
+    await p.setString(_keyTrail, trailId);
+    _prefs = p;
+  }
+
+  static List<String> getOwnedTrails() {
+    final raw = _prefs?.getString('owned_trails') ?? 'none';
+    return raw.split(',');
+  }
+
+  static Future<void> addOwnedTrail(String trailId) async {
+    final p = _prefs ?? await SharedPreferences.getInstance();
+    final owned = getOwnedTrails();
+    if (!owned.contains(trailId)) {
+      owned.add(trailId);
+      await p.setString('owned_trails', owned.join(','));
+      _prefs = p;
+    }
+  }
+
+  // ── BOOSTS ───────────────────────────────────────────────
+  
+  static int getBoostCount(String boostId) {
+    return _prefs?.getInt('boost_$boostId') ?? 0;
+  }
+
+  static Future<void> addBoost(String boostId, int amount) async {
+    final p = _prefs ?? await SharedPreferences.getInstance();
+    final current = getBoostCount(boostId);
+    await p.setInt('boost_$boostId', current + amount);
+    _prefs = p;
   }
 
   // ── SOUND & MUSIC ────────────────────────────────────────
