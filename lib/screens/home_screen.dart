@@ -119,14 +119,12 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => screen,
-        transitionsBuilder: (_, anim, __, child) =>
-            SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(1, 0),
-            end: Offset.zero,
-          ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
-          child: child,
-        ),
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
         transitionDuration: const Duration(milliseconds: 350),
       ),
     ).then((_) {
@@ -282,6 +280,8 @@ class _NeonMenuButtonState extends State<_NeonMenuButton> {
               style: TextStyle(color: widget.color, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 2)),
         ),
       ),
-    ).animate().fadeIn(delay: Duration(milliseconds: widget.delay)).slideX(begin: -0.08, end: 0, delay: Duration(milliseconds: widget.delay));
+    ).animate().fadeIn(delay: Duration(milliseconds: widget.delay))
+      .slideX(begin: -0.08, end: 0, delay: Duration(milliseconds: widget.delay))
+      .scale(duration: 600.ms, curve: Curves.easeOutBack);
   }
 }

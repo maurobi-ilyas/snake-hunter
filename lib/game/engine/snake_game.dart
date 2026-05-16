@@ -174,6 +174,7 @@ class SnakeGame extends FlameGame {
       case FoodType.normal:
         score++;
         combo++;
+        if (combo > 99) combo = 99;
         final bonus = combo >= 5 ? 3 : (combo >= 3 ? 2 : 1);
         coins += bonus * 2;
         scoreNotifier.value = score;
@@ -189,6 +190,7 @@ class SnakeGame extends FlameGame {
       case FoodType.speed:
         score += 2;
         combo++;
+        if (combo > 99) combo = 99;
         coins += 5;
         scoreNotifier.value = score;
         coinsNotifier.value = coins;
@@ -231,13 +233,22 @@ class SnakeGame extends FlameGame {
     else if (typeRoll >= 6) type = FoodType.speed;
     else                    type = FoodType.normal;
 
-    PositionModel pos;
+    PositionModel pos = PositionModel(x: 0, y: 0);
+    bool invalidPosition = true;
     int attempts = 0;
-    do {
+    while (invalidPosition && attempts < 200) {
       pos = PositionModel(x: random.nextInt(GameConfig.columns), y: random.nextInt(GameConfig.rows));
+      invalidPosition = snake.body.contains(pos) || 
+                        enemySnake.body.contains(pos) || 
+                        obstacles.any((o) => o.position == pos) ||
+                        (bossMode && boss.position == pos);
       attempts++;
-    } while (attempts < 100 && (snake.body.contains(pos) || enemySnake.body.contains(pos) || obstacles.any((o) => o.position == pos)));
-    food = FoodComponent(position: pos, type: type);
+      if (!invalidPosition) {
+        food = FoodComponent(position: pos, type: type);
+      }
+    }
+    // Fallback if loop exhausts
+    if (invalidPosition) food = FoodComponent(position: pos, type: type);
   }
 
   void generateObstacles() {
@@ -348,8 +359,8 @@ class SnakeGame extends FlameGame {
     final map = gameMaps[(stage - 1).clamp(0, 3)];
 
     // Camera shake offset
-    final shakeX = cameraShake ? (random.nextDouble() - 0.5) * 5 : 0.0;
-    final shakeY = cameraShake ? (random.nextDouble() - 0.5) * 5 : 0.0;
+    final shakeX = cameraShake ? (random.nextDouble() - 0.5) * 2 : 0.0;
+    final shakeY = cameraShake ? (random.nextDouble() - 0.5) * 2 : 0.0;
 
     canvas.save();
     canvas.translate(shakeX, shakeY);
@@ -358,7 +369,10 @@ class SnakeGame extends FlameGame {
     canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), Paint()..color = map.backgroundColor);
     super.render(canvas);
 
-    drawGrid(canvas, map.gridColor);
+    if (level < 5) {
+      drawGrid(canvas, map.gridColor);
+    }
+    
     drawObstacles(canvas);
     drawFood(canvas);
     drawEnemySnake(canvas);
@@ -421,7 +435,7 @@ class SnakeGame extends FlameGame {
     // Pulsing glow
     final glowOpacity = 0.2 + sin(_pulseT) * 0.15;
     canvas.drawRect(rect.inflate(6),
-      Paint()..color = Colors.redAccent.withOpacity(glowOpacity)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
+      Paint()..color = Colors.redAccent.withOpacity(glowOpacity)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
     canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(6)), Paint()..color = Colors.red.shade900);
     canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(6)),
       Paint()..color = Colors.redAccent..style = PaintingStyle.stroke..strokeWidth = 1.5);
@@ -453,7 +467,7 @@ class SnakeGame extends FlameGame {
     // Animated outer particle glow
     final outerR = r + 5 + sin(_pulseT) * 2;
     canvas.drawCircle(Offset(cx, cy), outerR,
-      Paint()..color = foodColor.withOpacity(0.18)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
+      Paint()..color = foodColor.withOpacity(0.18)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
 
     // Inner glow
     canvas.drawCircle(Offset(cx, cy), r + 2,

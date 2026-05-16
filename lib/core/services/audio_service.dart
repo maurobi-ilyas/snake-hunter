@@ -23,7 +23,7 @@ class AudioService {
   static Future<void> playBackgroundMusic() async {
     try {
       await bgPlayer.setReleaseMode(ReleaseMode.loop);
-      await bgPlayer.play(AssetSource('audio/bg.mp3'), volume: 0.3);
+      await bgPlayer.play(AssetSource('audio/bg.mp3'), volume: 0.15);
     } catch (e) {
       print('Error playing background music: $e');
     }

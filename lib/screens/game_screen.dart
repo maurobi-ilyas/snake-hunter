@@ -99,7 +99,7 @@ class _GameScreenState extends State<GameScreen> {
               child: ValueListenableBuilder<int>(
                 valueListenable: game.scoreNotifier,
                 builder: (_, score, __) => Text('$score',
-                    style: const TextStyle(color: Color(0xFF00FF9D), fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                    style: const TextStyle(color: Color(0xFF00FF9D), fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 2)),
               ),
             ),
           ),
@@ -136,7 +136,7 @@ class _GameScreenState extends State<GameScreen> {
 
               // Bottom action bar
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 6, 24, 12),
+                padding: const EdgeInsets.fromLTRB(24, 2, 24, 4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
