@@ -194,7 +194,7 @@ class SnakeGame extends FlameGame {
     if (eatenFood != null) {
       handleFoodEffect(eatenFood);
       foods.remove(eatenFood);
-      if (foods.isEmpty) generateFood();
+      generateSingleFood();
     } else {
       snake.body.removeLast();
       combo = 0; // reset combo if no food eaten this tick
@@ -273,37 +273,40 @@ class SnakeGame extends FlameGame {
     }
   }
 
+  void generateSingleFood() {
+    final typeRoll = random.nextInt(10);
+    FoodType type;
+    if (typeRoll >= 8)      type = FoodType.poison;
+    else if (typeRoll >= 6) type = FoodType.speed;
+    else                    type = FoodType.normal;
+
+    List<PositionModel> validPositions = [];
+    for (int r = 0; r < GameConfig.rows; r++) {
+      for (int c = 0; c < GameConfig.columns; c++) {
+        final pos = PositionModel(x: c, y: r);
+        if (!snake.body.contains(pos) &&
+            !enemySnake.body.contains(pos) &&
+            !obstacles.any((o) => o.position == pos) &&
+            !(bossMode && boss.position == pos) &&
+            !foods.any((f) => f.position == pos)) {
+          validPositions.add(pos);
+        }
+      }
+    }
+
+    if (validPositions.isNotEmpty) {
+      final pos = validPositions[random.nextInt(validPositions.length)];
+      foods.add(FoodComponent(position: pos, type: type));
+    } else {
+      foods.add(FoodComponent(position: PositionModel(x: 0, y: 0), type: type));
+    }
+  }
+
   void generateFood() {
     int numFoods = random.nextInt(3) + 2; // 2 to 4 foods
     foods.clear();
-
     for (int i = 0; i < numFoods; i++) {
-      final typeRoll = random.nextInt(10);
-      FoodType type;
-      if (typeRoll >= 8)      type = FoodType.poison;
-      else if (typeRoll >= 6) type = FoodType.speed;
-      else                    type = FoodType.normal;
-
-      List<PositionModel> validPositions = [];
-      for (int r = 0; r < GameConfig.rows; r++) {
-        for (int c = 0; c < GameConfig.columns; c++) {
-          final pos = PositionModel(x: c, y: r);
-          if (!snake.body.contains(pos) &&
-              !enemySnake.body.contains(pos) &&
-              !obstacles.any((o) => o.position == pos) &&
-              !(bossMode && boss.position == pos) &&
-              !foods.any((f) => f.position == pos)) {
-            validPositions.add(pos);
-          }
-        }
-      }
-
-      if (validPositions.isNotEmpty) {
-        final pos = validPositions[random.nextInt(validPositions.length)];
-        foods.add(FoodComponent(position: pos, type: type));
-      } else {
-        foods.add(FoodComponent(position: PositionModel(x: 0, y: 0), type: type));
-      }
+      generateSingleFood();
     }
   }
 
@@ -414,7 +417,7 @@ class SnakeGame extends FlameGame {
     for (final f in foods) { if (head == f.position) eaten = f; }
     if (eaten != null) {
       foods.remove(eaten);
-      if (foods.isEmpty) generateFood();
+      generateSingleFood();
     } else {
       enemySnake.body.removeLast();
     }
