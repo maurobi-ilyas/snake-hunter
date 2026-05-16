@@ -20,12 +20,21 @@ class AudioService {
     }
   }
 
-  static Future<void> playBackgroundMusic() async {
+  static Future<void> playMenuMusic() async {
     try {
       await bgPlayer.setReleaseMode(ReleaseMode.loop);
-      await bgPlayer.play(AssetSource('audio/bg.mp3'), volume: 0.15);
+      await bgPlayer.play(AssetSource('audio/menu_music.mpeg'), volume: 0.3);
     } catch (e) {
-      print('Error playing background music: $e');
+      print('Error playing menu music: $e');
+    }
+  }
+
+  static Future<void> playGameMusic() async {
+    try {
+      await bgPlayer.setReleaseMode(ReleaseMode.loop);
+      await bgPlayer.play(AssetSource('audio/game_music.mpeg'), volume: 0.25);
+    } catch (e) {
+      print('Error playing game music: $e');
     }
   }
 

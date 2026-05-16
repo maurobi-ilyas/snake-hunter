@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../core/services/audio_service.dart';
 import '../core/services/daily_reward_service.dart';
@@ -24,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _menuIndex = 0;
 
   late final AnimationController _bgController;
+  late final FixedExtentScrollController _scrollController;
 
   final List<Map<String, dynamic>> _menus = [
     {'label': 'PLAY', 'icon': Icons.play_arrow_rounded, 'color': const Color(0xFF00FF9D), 'screen': const GameScreen()},
@@ -39,9 +41,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.initState();
     _coins = LocalStorageService.getCoins();
     if (LocalStorageService.getMusicEnabled()) {
-      AudioService.playBackgroundMusic();
+      AudioService.playMenuMusic();
     }
     _checkDailyReward();
+
+    _scrollController = FixedExtentScrollController(initialItem: 0);
 
     _bgController = AnimationController(
       vsync: this,
@@ -52,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _bgController.dispose();
+    _scrollController.dispose();
     AudioService.stopMusic();
     super.dispose();
   }
@@ -191,55 +196,55 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                   const Spacer(flex: 3),
 
-                  // Menu Slider
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white54, size: 32),
-                        onPressed: _prevMenu,
-                      ).animate().fadeIn(delay: 500.ms).slideX(begin: -0.5),
-                      
-                      const SizedBox(width: 20),
-                      
-                      SizedBox(
-                        width: 280,
-                        height: 70,
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 400),
-                          transitionBuilder: (Widget child, Animation<double> animation) {
-                            return SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0.0, 0.5),
-                                end: Offset.zero,
-                              ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutBack)),
-                              child: FadeTransition(
-                                opacity: animation,
-                                child: ScaleTransition(
-                                  scale: Tween<double>(begin: 0.8, end: 1.0).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutBack)),
+                  // Cool Scrolling Menu
+                  SizedBox(
+                    height: 280,
+                    child: ListWheelScrollView.useDelegate(
+                      controller: _scrollController,
+                      itemExtent: 90,
+                      diameterRatio: 2.0,
+                      physics: const FixedExtentScrollPhysics(),
+                      onSelectedItemChanged: (index) {
+                        setState(() => _menuIndex = index);
+                      },
+                      childDelegate: ListWheelChildBuilderDelegate(
+                        builder: (context, index) {
+                          final isSelected = _menuIndex == index;
+                          return TweenAnimationBuilder<double>(
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOutBack,
+                            tween: Tween(begin: 0.8, end: isSelected ? 1.0 : 0.85),
+                            builder: (context, scale, child) {
+                              return Transform.scale(
+                                scale: scale,
+                                child: Opacity(
+                                  opacity: isSelected ? 1.0 : 0.4,
                                   child: child,
                                 ),
-                              ),
-                            );
-                          },
-                          child: _NeonMenuButton(
-                            key: ValueKey<int>(_menuIndex),
-                            label: _menus[_menuIndex]['label'],
-                            icon: _menus[_menuIndex]['icon'],
-                            color: _menus[_menuIndex]['color'],
-                            onTap: () => _navigate(_menus[_menuIndex]['screen']),
-                          ),
-                        ),
+                              );
+                            },
+                            child: _NeonMenuButton(
+                              label: _menus[index]['label'],
+                              icon: _menus[index]['icon'],
+                              color: _menus[index]['color'],
+                              onTap: () {
+                                if (_menuIndex == index) {
+                                  _navigate(_menus[index]['screen']);
+                                } else {
+                                  _scrollController.animateToItem(
+                                    index,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                  );
+                                }
+                              },
+                            ),
+                          );
+                        },
+                        childCount: _menus.length,
                       ),
-
-                      const SizedBox(width: 20),
-
-                      IconButton(
-                        icon: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white54, size: 32),
-                        onPressed: _nextMenu,
-                      ).animate().fadeIn(delay: 500.ms).slideX(begin: 0.5),
-                    ],
-                  ),
+                    ),
+                  ).animate().fadeIn(duration: 800.ms, delay: 500.ms),
 
                   const Spacer(flex: 3),
 
@@ -283,24 +288,44 @@ class _HomeBackgroundPainter extends CustomPainter {
   }
 
   void _drawAnimatedSnake(Canvas canvas, Size size) {
-    final int snakeLength = 15;
-    final double spacing = 18.0;
-    final double radius = 9.0;
-    final Color skinColor = const Color(0xFF00FF9D);
-    final Color darkColor = const Color(0xFF1B5E20);
+    // 1. Main Snake (Green, Left to Right, Bottom)
+    _drawSingleSnake(canvas, size, progress, 15, 0.75, 1.0, const Color(0xFF00FF9D), const Color(0xFF1B5E20));
+    // 2. Secondary Snake (Cyan, Right to Left, Top)
+    _drawSingleSnake(canvas, size, (progress + 0.4) % 1.0, 10, 0.15, -0.8, Colors.cyanAccent, const Color(0xFF006064));
+    // 3. Fast Snake (Purple, Left to Right, Middle)
+    _drawSingleSnake(canvas, size, (progress * 1.5) % 1.0, 8, 0.45, 1.5, Colors.purpleAccent, const Color(0xFF4A148C));
+    // 4. Slow Snake (Amber, Right to Left, Lower Middle)
+    _drawSingleSnake(canvas, size, (progress * 0.6 + 0.2) % 1.0, 18, 0.6, -0.5, Colors.amber, const Color(0xFF7B4F00));
+  }
 
-    // Calculate base position based on progress
-    // Snake moves from left to right.
-    double headX = (progress * (size.width + snakeLength * spacing * 2)) - (snakeLength * spacing);
-    double baseY = size.height * 0.75; // near the bottom
+  void _drawSingleSnake(Canvas canvas, Size size, double p, int snakeLength, double yRatio, double speedDir, Color skinColor, Color darkColor) {
+    final double spacing = 18.0;
+    final double radius = 8.0 + (speedDir.abs() * 2); // Faster/main snakes are slightly thicker
+
+    double totalTravel = size.width + snakeLength * spacing * 3;
+    double headX;
+    if (speedDir > 0) {
+      headX = (p * totalTravel) - (snakeLength * spacing * 2);
+    } else {
+      headX = size.width + (snakeLength * spacing * 2) - (p * totalTravel);
+    }
+
+    double baseY = size.height * yRatio;
 
     for (int i = snakeLength - 1; i >= 0; i--) {
       double t = i / snakeLength;
       Color color = Color.lerp(skinColor, darkColor, t)!;
-      
+
       // Wave motion
-      double waveOffset = sin((progress * pi * 8) - (i * 0.4)) * 15;
-      double x = headX - (i * spacing);
+      double waveOffset = sin((progress * pi * 8) - (i * 0.4)) * (10 + speedDir.abs() * 5);
+      
+      double x;
+      if (speedDir > 0) {
+        x = headX - (i * spacing);
+      } else {
+        x = headX + (i * spacing);
+      }
+      
       double y = baseY + waveOffset;
 
       if (i == 0) {
@@ -314,7 +339,7 @@ class _HomeBackgroundPainter extends CustomPainter {
         radius,
         Paint()
           ..shader = RadialGradient(colors: [skinColor, color]).createShader(Rect.fromCircle(center: Offset(x, y), radius: radius))
-          ..color = color.withOpacity(0.7), // Slightly transparent for elegance
+          ..color = color.withOpacity(0.7),
       );
 
       // Draw eyes and tongue on the head
@@ -323,27 +348,29 @@ class _HomeBackgroundPainter extends CustomPainter {
         final pupilP = Paint()..color = Colors.black;
         final tongueP = Paint()..color = Colors.redAccent.withOpacity(0.8)..strokeWidth = 1.5;
 
-        // Facing right
-        double eOx = 0;
+        double eOx = speedDir > 0 ? 0 : 0;
         double eOy = radius * 0.4;
-        
-        final eye1X = x + radius * 0.3 + eOx;
+
+        final eye1X = speedDir > 0 ? (x + radius * 0.3) : (x - radius * 0.3);
         final eye1Y = y + radius * 0.3 + eOy;
-        final eye2X = x + radius * 0.3 - eOx;
+        final eye2X = speedDir > 0 ? (x + radius * 0.3) : (x - radius * 0.3);
         final eye2Y = y - radius * 0.3 - eOy;
 
         canvas.drawCircle(Offset(eye1X, eye1Y), radius * 0.3, eyeP);
         canvas.drawCircle(Offset(eye2X, eye2Y), radius * 0.3, eyeP);
-        
-        canvas.drawCircle(Offset(eye1X + 1.5, eye1Y), radius * 0.15, pupilP);
-        canvas.drawCircle(Offset(eye2X + 1.5, eye2Y), radius * 0.15, pupilP);
+
+        final pOffset = speedDir > 0 ? 1.5 : -1.5;
+        canvas.drawCircle(Offset(eye1X + pOffset, eye1Y), radius * 0.15, pupilP);
+        canvas.drawCircle(Offset(eye2X + pOffset, eye2Y), radius * 0.15, pupilP);
 
         // Tongue
-        final tx = x + radius;
+        final tx = speedDir > 0 ? (x + radius) : (x - radius);
         final ty = y;
-        canvas.drawLine(Offset(tx, ty), Offset(tx + radius * 0.6, ty), tongueP);
-        canvas.drawLine(Offset(tx + radius * 0.6, ty), Offset(tx + radius * 0.8, ty + radius * 0.3), tongueP);
-        canvas.drawLine(Offset(tx + radius * 0.6, ty), Offset(tx + radius * 0.8, ty - radius * 0.3), tongueP);
+        final tDir = speedDir > 0 ? 1 : -1;
+        
+        canvas.drawLine(Offset(tx, ty), Offset(tx + radius * 0.6 * tDir, ty), tongueP);
+        canvas.drawLine(Offset(tx + radius * 0.6 * tDir, ty), Offset(tx + radius * 0.8 * tDir, ty + radius * 0.3), tongueP);
+        canvas.drawLine(Offset(tx + radius * 0.6 * tDir, ty), Offset(tx + radius * 0.8 * tDir, ty - radius * 0.3), tongueP);
       }
     }
   }
@@ -373,8 +400,8 @@ class _NeonTitle extends StatelessWidget {
           shaderCallback: (bounds) => const LinearGradient(
             colors: [Color(0xFF00FF9D), Color(0xFF00C97B)],
           ).createShader(bounds),
-          child: const Text('SNAKE ESCAPE',
-              style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 5)),
+          child: Text('SNAKE ESCAPE',
+              style: GoogleFonts.orbitron(fontSize: 30, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 5)),
         ),
         const SizedBox(height: 4),
         Text('E V O L U T I O N',

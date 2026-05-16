@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../core/services/local_storage_service.dart';
 import '../game/models/skin_model.dart';
@@ -172,7 +173,9 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       backgroundColor: color,
-      content: Text(message, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      content: Text(message, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
       duration: const Duration(seconds: 2),
     ));
   }
@@ -181,50 +184,117 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF030712),
-      appBar: AppBar(
-        title: const Text('NEON SHOP', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 2)),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF0F172A), Color(0xFF020617)],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              _buildTabBar(),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    _buildSkinTab(),
+                    _buildThemeTab(),
+                    _buildTrailTab(),
+                    _buildBoostTab(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 22),
+            style: IconButton.styleFrom(backgroundColor: Colors.white.withOpacity(0.05)),
+          ),
+          const Expanded(
+            child: Center(
+              child: Text(
+                'NEON SHOP',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 3,
+                  shadows: [Shadow(color: Colors.cyanAccent, blurRadius: 15)],
+                ),
+              ),
+            ),
+          ),
           Container(
-            margin: const EdgeInsets.only(right: 16, top: 12, bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.amber.withOpacity(0.15),
+              gradient: LinearGradient(
+                colors: [Colors.amber.withOpacity(0.2), Colors.orange.withOpacity(0.1)],
+              ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.amber.withOpacity(0.5)),
+              border: Border.all(color: Colors.amber.withOpacity(0.4), width: 1.5),
+              boxShadow: [BoxShadow(color: Colors.amber.withOpacity(0.1), blurRadius: 10)],
             ),
             child: Row(
               children: [
-                const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
-                const SizedBox(width: 6),
-                Text('$_coins', style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14)),
+                const Icon(Icons.monetization_on, color: Colors.amber, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  '$_coins',
+                  style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.w900, fontSize: 16),
+                ),
               ],
             ),
-          ),
+          ).animate().fadeIn(duration: 500.ms).slideX(begin: 0.2),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.cyanAccent,
-          labelColor: Colors.cyanAccent,
-          unselectedLabelColor: Colors.white54,
-          isScrollable: true,
-          tabs: const [
-            Tab(text: 'SKINS', icon: Icon(Icons.gesture)),
-            Tab(text: 'ARENAS', icon: Icon(Icons.map)),
-            Tab(text: 'TRAILS', icon: Icon(Icons.moving)),
-            Tab(text: 'BOOSTS', icon: Icon(Icons.flash_on)),
-          ],
-        ),
       ),
-      body: TabBarView(
+    );
+  }
+
+  Widget _buildTabBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      height: 65,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: TabBar(
         controller: _tabController,
-        children: [
-          _buildSkinTab(),
-          _buildThemeTab(),
-          _buildTrailTab(),
-          _buildBoostTab(),
+        indicator: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [Colors.cyanAccent.withOpacity(0.4), Colors.blueAccent.withOpacity(0.2)],
+          ),
+          border: Border.all(color: Colors.cyanAccent.withOpacity(0.6), width: 1.5),
+          boxShadow: [BoxShadow(color: Colors.cyanAccent.withOpacity(0.15), blurRadius: 10)],
+        ),
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white30,
+        labelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        tabs: const [
+          Tab(text: 'SKINS', icon: Icon(Icons.gesture, size: 20)),
+          Tab(text: 'ARENAS', icon: Icon(Icons.map_rounded, size: 20)),
+          Tab(text: 'TRAILS', icon: Icon(Icons.auto_graph_rounded, size: 20)),
+          Tab(text: 'BOOSTS', icon: Icon(Icons.bolt_rounded, size: 20)),
         ],
       ),
     );
@@ -234,20 +304,15 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
     final current = _skins.firstWhere((s) => s.id == _selectedSkin, orElse: () => _skins.first);
     return Column(
       children: [
-        _buildPreviewHeader('Active Skin', current.name, current.color, current.glowColor),
+        _buildPreviewHeader('ACTIVE SKIN', current.name, current.color, current.glowColor),
         Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.1),
-            itemCount: _skins.length,
-            itemBuilder: (_, i) => _SkinCard(
-              skin: _skins[i],
-              isSelected: _selectedSkin == _skins[i].id,
-              playerCoins: _coins,
-              onBuy: () => _buySkin(_skins[i]),
-              onSelect: () => _selectSkin(_skins[i]),
-            ),
-          ),
+          child: _buildGrid(_skins.length, (i) => _SkinCard(
+            skin: _skins[i],
+            isSelected: _selectedSkin == _skins[i].id,
+            playerCoins: _coins,
+            onBuy: () => _buySkin(_skins[i]),
+            onSelect: () => _selectSkin(_skins[i]),
+          )),
         ),
       ],
     );
@@ -257,20 +322,15 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
     final current = _themes.firstWhere((s) => s.id == _selectedTheme, orElse: () => _themes.first);
     return Column(
       children: [
-        _buildPreviewHeader('Active Arena', current.name, current.color, current.glowColor, icon: current.icon),
+        _buildPreviewHeader('ACTIVE ARENA', current.name, current.color, current.glowColor, icon: current.icon),
         Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.1),
-            itemCount: _themes.length,
-            itemBuilder: (_, i) => _GenericItemCard(
-              item: _themes[i],
-              isSelected: _selectedTheme == _themes[i].id,
-              playerCoins: _coins,
-              onBuy: () => _buyTheme(_themes[i]),
-              onSelect: () => _selectTheme(_themes[i]),
-            ),
-          ),
+          child: _buildGrid(_themes.length, (i) => _GenericItemCard(
+            item: _themes[i],
+            isSelected: _selectedTheme == _themes[i].id,
+            playerCoins: _coins,
+            onBuy: () => _buyTheme(_themes[i]),
+            onSelect: () => _selectTheme(_themes[i]),
+          )),
         ),
       ],
     );
@@ -280,20 +340,15 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
     final current = _trails.firstWhere((s) => s.id == _selectedTrail, orElse: () => _trails.first);
     return Column(
       children: [
-        _buildPreviewHeader('Active Trail', current.name, current.color, current.glowColor, icon: current.icon),
+        _buildPreviewHeader('ACTIVE TRAIL', current.name, current.color, current.glowColor, icon: current.icon),
         Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.1),
-            itemCount: _trails.length,
-            itemBuilder: (_, i) => _GenericItemCard(
-              item: _trails[i],
-              isSelected: _selectedTrail == _trails[i].id,
-              playerCoins: _coins,
-              onBuy: () => _buyTrail(_trails[i]),
-              onSelect: () => _selectTrail(_trails[i]),
-            ),
-          ),
+          child: _buildGrid(_trails.length, (i) => _GenericItemCard(
+            item: _trails[i],
+            isSelected: _selectedTrail == _trails[i].id,
+            playerCoins: _coins,
+            onBuy: () => _buyTrail(_trails[i]),
+            onSelect: () => _selectTrail(_trails[i]),
+          )),
         ),
       ],
     );
@@ -302,63 +357,82 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
   Widget _buildBoostTab() {
     return Column(
       children: [
-        _buildPreviewHeader('Power-Ups', 'Consumables', Colors.amber, Colors.orange, icon: Icons.inventory),
+        _buildPreviewHeader('POWER-UPS', 'ENHANCE GAMEPLAY', Colors.amber, Colors.orange, icon: Icons.flash_on_rounded),
         Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.1),
-            itemCount: _boosts.length,
-            itemBuilder: (_, i) => _BoostCard(
-              item: _boosts[i],
-              playerCoins: _coins,
-              count: LocalStorageService.getBoostCount(_boosts[i].id),
-              onBuy: () => _buyBoost(_boosts[i]),
-            ),
-          ),
+          child: _buildGrid(_boosts.length, (i) => _BoostCard(
+            item: _boosts[i],
+            playerCoins: _coins,
+            count: LocalStorageService.getBoostCount(_boosts[i].id),
+            onBuy: () => _buyBoost(_boosts[i]),
+          )),
         ),
       ],
+    );
+  }
+
+  Widget _buildGrid(int itemCount, Widget Function(int) itemBuilder) {
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      physics: const BouncingScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 0.95,
+      ),
+      itemCount: itemCount,
+      itemBuilder: (_, i) => itemBuilder(i).animate().fadeIn(delay: (i * 40).ms).scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOutBack),
     );
   }
 
   Widget _buildPreviewHeader(String title, String subtitle, Color color, Color glowColor, {IconData? icon}) {
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: const Color(0xFF0D111A),
-        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
-        boxShadow: [BoxShadow(color: glowColor.withOpacity(0.15), blurRadius: 20)],
+        borderRadius: BorderRadius.circular(25),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [color.withOpacity(0.2), Colors.white.withOpacity(0.01)],
+        ),
+        border: Border.all(color: color.withOpacity(0.3), width: 2),
+        boxShadow: [BoxShadow(color: glowColor.withOpacity(0.1), blurRadius: 20, spreadRadius: 2)],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (icon != null) ...[
-            Icon(icon, color: color, size: 28),
-            const SizedBox(width: 12),
-          ] else ...[
-            Container(
-              width: 50,
-              height: 16,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: color,
-                boxShadow: [BoxShadow(color: glowColor.withOpacity(0.6), blurRadius: 12)],
-              ),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: glowColor.withOpacity(0.4), blurRadius: 15)],
             ),
-            const SizedBox(width: 16),
-          ],
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(color: Colors.white54, fontSize: 10, letterSpacing: 1)),
-              const SizedBox(height: 2),
-              Text(subtitle, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1)),
-            ],
+            child: Icon(icon ?? Icons.auto_awesome_rounded, color: color, size: 28),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 20,
+                    letterSpacing: 1,
+                    shadows: [Shadow(color: glowColor.withOpacity(0.5), blurRadius: 8)],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-    );
+    ).animate().fadeIn().slideX(begin: 0.1);
   }
 }
 
@@ -377,32 +451,41 @@ class _SkinCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: skin.owned ? onSelect : (canAfford ? onBuy : null),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
+      child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: isSelected ? skin.color.withOpacity(0.1) : const Color(0xFF0D111A),
-          border: Border.all(color: isSelected ? skin.color : (skin.owned ? skin.color.withOpacity(0.3) : Colors.white12), width: isSelected ? 2 : 1),
-          boxShadow: isSelected ? [BoxShadow(color: skin.glowColor.withOpacity(0.2), blurRadius: 15)] : [],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                height: 14,
-                width: 60,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(7),
-                  color: skin.color,
-                  boxShadow: [BoxShadow(color: skin.glowColor.withOpacity(0.6), blurRadius: 10)],
-                ),
-              ),
-              Text(skin.name, style: TextStyle(color: skin.owned ? skin.color : Colors.white54, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center),
-              _buildActionButton(skin.owned, isSelected, canAfford, skin.price, skin.color),
-            ],
+          borderRadius: BorderRadius.circular(25),
+          color: isSelected ? skin.color.withOpacity(0.12) : Colors.white.withOpacity(0.03),
+          border: Border.all(
+            color: isSelected ? skin.color : (skin.owned ? skin.color.withOpacity(0.4) : Colors.white.withOpacity(0.08)),
+            width: isSelected ? 2.5 : 1.5,
           ),
+          boxShadow: isSelected ? [BoxShadow(color: skin.color.withOpacity(0.1), blurRadius: 12)] : [],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              height: 22,
+              width: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(11),
+                gradient: LinearGradient(colors: [skin.color, skin.glowColor.withOpacity(0.7)]),
+                boxShadow: [BoxShadow(color: skin.glowColor.withOpacity(0.8), blurRadius: 15)],
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              skin.name.toUpperCase(),
+              style: TextStyle(
+                color: skin.owned ? Colors.white : Colors.white38,
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _buildActionLabel(skin.owned, isSelected, canAfford, skin.price, skin.color),
+          ],
         ),
       ),
     );
@@ -424,24 +507,32 @@ class _GenericItemCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: item.owned ? onSelect : (canAfford ? onBuy : null),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
+      child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: isSelected ? item.color.withOpacity(0.1) : const Color(0xFF0D111A),
-          border: Border.all(color: isSelected ? item.color : (item.owned ? item.color.withOpacity(0.3) : Colors.white12), width: isSelected ? 2 : 1),
-          boxShadow: isSelected ? [BoxShadow(color: item.glowColor.withOpacity(0.2), blurRadius: 15)] : [],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(item.icon, color: item.color, size: 28),
-              Text(item.name, style: TextStyle(color: item.owned ? item.color : Colors.white54, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center),
-              _buildActionButton(item.owned, isSelected, canAfford, item.price, item.color),
-            ],
+          borderRadius: BorderRadius.circular(25),
+          color: isSelected ? item.color.withOpacity(0.12) : Colors.white.withOpacity(0.03),
+          border: Border.all(
+            color: isSelected ? item.color : (item.owned ? item.color.withOpacity(0.4) : Colors.white.withOpacity(0.08)),
+            width: isSelected ? 2.5 : 1.5,
           ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(item.icon, color: item.color, size: 42),
+            const SizedBox(height: 14),
+            Text(
+              item.name.toUpperCase(),
+              style: TextStyle(
+                color: item.owned ? Colors.white : Colors.white38,
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _buildActionLabel(item.owned, isSelected, canAfford, item.price, item.color),
+          ],
         ),
       ),
     );
@@ -462,71 +553,79 @@ class _BoostCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: canAfford ? onBuy : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+      child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: const Color(0xFF0D111A),
-          border: Border.all(color: count > 0 ? item.color.withOpacity(0.5) : Colors.white12, width: 1.5),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  Icon(item.icon, color: item.color, size: 28),
-                  if (count > 0)
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(color: item.color, shape: BoxShape.circle),
-                      child: Text('$count', style: const TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.bold)),
-                    ),
-                ],
-              ),
-              Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center),
-              _buildActionButton(false, false, canAfford, item.price, item.color, isConsumable: true),
-            ],
+          borderRadius: BorderRadius.circular(25),
+          color: Colors.white.withOpacity(0.03),
+          border: Border.all(
+            color: count > 0 ? item.color.withOpacity(0.5) : Colors.white.withOpacity(0.08),
+            width: 1.5,
           ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              alignment: Alignment.topRight,
+              children: [
+                Icon(item.icon, color: item.color, size: 42),
+                if (count > 0)
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: item.color,
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: item.color.withOpacity(0.5), blurRadius: 10)],
+                    ),
+                    child: Text('$count', style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.w900)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              item.name.toUpperCase(),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1.2),
+            ),
+            const SizedBox(height: 14),
+            _buildActionLabel(false, false, canAfford, item.price, item.color, isConsumable: true),
+          ],
         ),
       ),
     );
   }
 }
 
-Widget _buildActionButton(bool owned, bool isSelected, bool canAfford, int price, Color color, {bool isConsumable = false}) {
+Widget _buildActionLabel(bool owned, bool isSelected, bool canAfford, int price, Color color, {bool isConsumable = false}) {
   if (owned && !isConsumable) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: isSelected ? color : color.withOpacity(0.1),
-        border: Border.all(color: color.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(12),
+        color: isSelected ? color : color.withOpacity(0.15),
+        boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 15)] : [],
+        border: isSelected ? null : Border.all(color: color.withOpacity(0.3)),
       ),
       child: Text(
-        isSelected ? 'DIGUNAKAN' : 'GUNAKAN',
-        style: TextStyle(color: isSelected ? Colors.black : color, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+        isSelected ? 'ACTIVE' : 'EQUIP',
+        style: TextStyle(color: isSelected ? Colors.black : color, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5),
       ),
     );
   } else {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: canAfford ? Colors.amber.withOpacity(0.15) : Colors.white.withOpacity(0.05),
-        border: Border.all(color: canAfford ? Colors.amber.withOpacity(0.5) : Colors.white12),
+        borderRadius: BorderRadius.circular(12),
+        color: canAfford ? Colors.amber.withOpacity(0.2) : Colors.white.withOpacity(0.06),
+        border: Border.all(color: canAfford ? Colors.amber.withOpacity(0.4) : Colors.white.withOpacity(0.1)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.monetization_on, color: canAfford ? Colors.amber : Colors.white30, size: 12),
-          const SizedBox(width: 4),
+          Icon(Icons.monetization_on_rounded, color: canAfford ? Colors.amber : Colors.white24, size: 16),
+          const SizedBox(width: 8),
           Text(
             '$price',
-            style: TextStyle(color: canAfford ? Colors.amber : Colors.white30, fontWeight: FontWeight.bold, fontSize: 11),
+            style: TextStyle(color: canAfford ? Colors.amber : Colors.white24, fontWeight: FontWeight.w900, fontSize: 14),
           ),
         ],
       ),

@@ -62,7 +62,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 setState(() => _music = val);
                 await LocalStorageService.saveMusicEnabled(val);
                 if (val) {
-                  AudioService.playBackgroundMusic();
+                  AudioService.playMenuMusic();
                 } else {
                   AudioService.stopMusic();
                 }

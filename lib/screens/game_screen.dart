@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../game/engine/snake_game.dart';
 import '../game/models/direction.dart';
+import '../core/services/audio_service.dart';
+import '../core/services/local_storage_service.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -19,6 +21,17 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     game = SnakeGame();
+    if (LocalStorageService.getMusicEnabled()) {
+      AudioService.playGameMusic();
+    }
+  }
+
+  @override
+  void dispose() {
+    if (LocalStorageService.getMusicEnabled()) {
+      AudioService.playMenuMusic(); // Switch back to menu music
+    }
+    super.dispose();
   }
 
   void handleSwipeUpdate(DragUpdateDetails details) {

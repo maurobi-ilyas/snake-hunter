@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'home_screen.dart';
 
@@ -54,15 +55,7 @@ class _SplashScreenState extends State<SplashScreen>
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment.center,
-            radius: 1.2,
-            colors: [
-              Color(0xFF0B2B26),
-              Color(0xFF071A12),
-              Color(0xFF000000),
-            ],
-          ),
+          color: Color(0xFF050816),
         ),
         child: Stack(
           children: [
@@ -92,10 +85,13 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.linear_scale_rounded,
-                        size: 80,
-                        color: Color(0xFF00FF9D),
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/icon.png',
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                   ).animate().scale(
@@ -103,20 +99,21 @@ class _SplashScreenState extends State<SplashScreen>
                         curve: Curves.elasticOut,
                       ),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 20),
 
                   // Title
                   ShaderMask(
                     shaderCallback: (bounds) => const LinearGradient(
                       colors: [Color(0xFF00FF9D), Color(0xFF00C97B)],
                     ).createShader(bounds),
-                    child: const Text(
+                    child: Text(
                       'SNAKE ESCAPE',
-                      style: TextStyle(
-                        fontSize: 36,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.orbitron(
+                        fontSize: 32,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
-                        letterSpacing: 6,
+                        letterSpacing: 4,
                       ),
                     ),
                   ).animate().fadeIn(duration: 900.ms, delay: 300.ms).slideY(
@@ -126,19 +123,20 @@ class _SplashScreenState extends State<SplashScreen>
                         delay: 300.ms,
                       ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
 
                   Text(
-                    'EVOLUTION',
+                    'E V O L U T I O N',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 12,
                       color: const Color(0xFF00FF9D).withOpacity(0.6),
-                      letterSpacing: 10,
+                      letterSpacing: 8,
                       fontWeight: FontWeight.w300,
                     ),
                   ).animate().fadeIn(duration: 800.ms, delay: 600.ms),
 
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 50),
 
                   // Loading bar
                   SizedBox(
