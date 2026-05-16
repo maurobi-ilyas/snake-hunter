@@ -44,6 +44,39 @@ class _GameScreenState extends State<GameScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
+          // Level display
+          ValueListenableBuilder<int>(
+            valueListenable: game.levelNotifier,
+            builder: (_, lv, __) => Center(
+              child: Text(
+                'LV $lv',
+                style: const TextStyle(
+                  color: Colors.yellowAccent,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            onPressed: () {
+              if (game.isGameOver) return;
+              if (game.gameTimer?.isActive ?? false) {
+                game.gameTimer?.cancel();
+              } else {
+                game.startGameLoop();
+              }
+              setState(() {});
+            },
+            icon: Icon(
+              (game.gameTimer?.isActive ?? false)
+                  ? Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+              color: const Color(0xFF00FF9D),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 14),
             child: Center(
