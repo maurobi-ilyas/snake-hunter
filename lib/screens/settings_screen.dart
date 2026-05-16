@@ -31,7 +31,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('SETTINGS'),
         centerTitle: true,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
