@@ -97,7 +97,8 @@ class SnakeGame extends FlameGame {
     currentSpeed  = difficulty == 'easy' ? 0.16 : (difficulty == 'hard' ? 0.09 : GameConfig.gameSpeed);
     isGameOver    = false;
     direction     = Direction.right;
-    _nextDirection = null;
+    _inputQueue.clear();
+    _timeSinceLastTick = 0.0;
     _pulseT       = 0.0;
     scoreNotifier.value = 0;
     levelNotifier.value = 1;
@@ -111,15 +112,35 @@ class SnakeGame extends FlameGame {
 
   // ── Game Loop ────────────────────────────────────────────
 
+  final List<Direction> _inputQueue = [];
+  double _timeSinceLastTick = 0.0;
+  List<PositionModel> _prevBody = [];
+  List<PositionModel> _prevEnemyBody = [];
+
+  void queueDirection(Direction newDir) {
+    if (_inputQueue.length >= 3) return;
+    Direction lastDir = _inputQueue.isNotEmpty ? _inputQueue.last : direction;
+    bool isOpposite = false;
+    if (lastDir == Direction.up && newDir == Direction.down) isOpposite = true;
+    if (lastDir == Direction.down && newDir == Direction.up) isOpposite = true;
+    if (lastDir == Direction.left && newDir == Direction.right) isOpposite = true;
+    if (lastDir == Direction.right && newDir == Direction.left) isOpposite = true;
+    if (!isOpposite && lastDir != newDir) {
+      _inputQueue.add(newDir);
+    }
+  }
+
   void startGameLoop() {
     gameTimer?.cancel();
     gameTimer = Timer.periodic(
       Duration(milliseconds: (currentSpeed * 1000).toInt()),
       (_) {
-        if (_nextDirection != null) {
-          direction = _nextDirection!;
-          _nextDirection = null;
+        if (_inputQueue.isNotEmpty) {
+          direction = _inputQueue.removeAt(0);
         }
+        _timeSinceLastTick = 0.0;
+        _prevBody = snake.body.map((p) => p.copyWith()).toList();
+        _prevEnemyBody = enemySnake.body.map((p) => p.copyWith()).toList();
         moveSnake();
       },
     );
@@ -128,9 +149,8 @@ class SnakeGame extends FlameGame {
   @override
   void update(double dt) {
     super.update(dt);
-    // Animate food pulse
     _pulseT = (_pulseT + dt * 3.0) % (2 * pi);
-    // Auto-clear camera shake
+    _timeSinceLastTick += dt;
     if (cameraShake) {
       Future.delayed(const Duration(milliseconds: 160), () => cameraShake = false);
     }
@@ -317,6 +337,8 @@ class SnakeGame extends FlameGame {
 
   // ── AI ───────────────────────────────────────────────────
 
+  int _aiTickCounter = 0;
+
   void moveEnemySnake() {
     if (isGameOver) return;
 
@@ -329,29 +351,26 @@ class SnakeGame extends FlameGame {
       enemySnake = EnemySnakeComponent();
     }
 
+    // AI nerfing logic (slower speed)
+    _aiTickCounter++;
+    int skipTicks = difficulty == 'hard' ? 0 : (difficulty == 'easy' ? 2 : 1);
+    if (_aiTickCounter % (skipTicks + 1) != 0) return; // Skip movement ticks to make it slower
+
     final head = enemySnake.body.first.copyWith();
 
-    if (difficulty == 'easy') {
-      if (random.nextInt(100) < 40) return; // 40% chance to skip turn
-      if (random.nextInt(100) < 30) {
-        // 30% chance random move
-        final dirs = [[0,-1], [0,1], [-1,0], [1,0]];
-        final d = dirs[random.nextInt(4)];
-        head.x += d[0]; head.y += d[1];
-        head.x = head.x.clamp(0, GameConfig.columns - 1);
-        head.y = head.y.clamp(0, GameConfig.rows - 1);
-        enemySnake.body.insert(0, head);
-        enemySnake.body.removeLast();
-        if (head == snake.body.first) gameOver();
-        if (head == food.position) generateFood();
-        return;
-      }
+    // AI randomness (chance to move randomly instead of tracking perfectly)
+    int randomChance = difficulty == 'easy' ? 40 : (difficulty == 'hard' ? 5 : 20);
+    if (random.nextInt(100) < randomChance) {
+      final dirs = [[0,-1], [0,1], [-1,0], [1,0]];
+      final d = dirs[random.nextInt(4)];
+      head.x += d[0]; head.y += d[1];
+    } else {
+      // Standard tracking
+      if (head.x < food.position.x) head.x++;
+      else if (head.x > food.position.x) head.x--;
+      else if (head.y < food.position.y) head.y++;
+      else if (head.y > food.position.y) head.y--;
     }
-
-    if (head.x < food.position.x) head.x++;
-    else if (head.x > food.position.x) head.x--;
-    else if (head.y < food.position.y) head.y++;
-    else if (head.y > food.position.y) head.y--;
     head.x = head.x.clamp(0, GameConfig.columns - 1);
     head.y = head.y.clamp(0, GameConfig.rows - 1);
     enemySnake.body.insert(0, head);
@@ -444,12 +463,25 @@ class SnakeGame extends FlameGame {
   }
 
   void drawSnake(Canvas canvas) {
+    double tProg = (_timeSinceLastTick / currentSpeed).clamp(0.0, 1.0);
+
     for (int i = snake.body.length - 1; i >= 0; i--) {
       final part = snake.body[i];
       final t = i / snake.body.length.clamp(1, 999);
       final color = Color.lerp(skinColor, skinDark, t)!;
-      final x = part.x * GameConfig.cellSize + GameConfig.cellSize / 2;
-      final y = part.y * GameConfig.cellSize + GameConfig.cellSize / 2;
+      double x = part.x * GameConfig.cellSize + GameConfig.cellSize / 2;
+      double y = part.y * GameConfig.cellSize + GameConfig.cellSize / 2;
+
+      // Interpolation logic
+      if (_prevBody.length > i) {
+        double px = _prevBody[i].x * GameConfig.cellSize + GameConfig.cellSize / 2;
+        double py = _prevBody[i].y * GameConfig.cellSize + GameConfig.cellSize / 2;
+        if ((x - px).abs() <= GameConfig.cellSize * 1.5 && (y - py).abs() <= GameConfig.cellSize * 1.5) {
+          x = px + (x - px) * tProg;
+          y = py + (y - py) * tProg;
+        }
+      }
+
       final radius = GameConfig.cellSize / 2.2;
 
       if (i == 0) {
@@ -471,12 +503,25 @@ class SnakeGame extends FlameGame {
   }
 
   void drawEnemySnake(Canvas canvas) {
+    double tProg = (_timeSinceLastTick / currentSpeed).clamp(0.0, 1.0);
+
     for (int i = enemySnake.body.length - 1; i >= 0; i--) {
       final part = enemySnake.body[i];
       final t = i / enemySnake.body.length.clamp(1, 999);
       final color = Color.lerp(Colors.orangeAccent, const Color(0xFF7B3F00), t)!;
-      final x = part.x * GameConfig.cellSize + GameConfig.cellSize / 2;
-      final y = part.y * GameConfig.cellSize + GameConfig.cellSize / 2;
+      double x = part.x * GameConfig.cellSize + GameConfig.cellSize / 2;
+      double y = part.y * GameConfig.cellSize + GameConfig.cellSize / 2;
+
+      // Interpolation logic
+      if (_prevEnemyBody.length > i) {
+        double px = _prevEnemyBody[i].x * GameConfig.cellSize + GameConfig.cellSize / 2;
+        double py = _prevEnemyBody[i].y * GameConfig.cellSize + GameConfig.cellSize / 2;
+        if ((x - px).abs() <= GameConfig.cellSize * 1.5 && (y - py).abs() <= GameConfig.cellSize * 1.5) {
+          x = px + (x - px) * tProg;
+          y = py + (y - py) * tProg;
+        }
+      }
+
       final radius = GameConfig.cellSize / 2.2;
 
       if (i == 0) {

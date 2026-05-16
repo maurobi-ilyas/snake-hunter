@@ -21,13 +21,14 @@ class _GameScreenState extends State<GameScreen> {
     game = SnakeGame();
   }
 
-  void handleSwipe(DragEndDetails details) {
-    final dx = details.velocity.pixelsPerSecond.dx;
-    final dy = details.velocity.pixelsPerSecond.dy;
+  void handleSwipeUpdate(DragUpdateDetails details) {
+    if (details.delta.distance < 2.5) return; // Sensitivity threshold
+    final dx = details.delta.dx;
+    final dy = details.delta.dy;
     if (dx.abs() > dy.abs()) {
-      game.changeDirection(dx > 0 ? Direction.right : Direction.left);
+      game.queueDirection(dx > 0 ? Direction.right : Direction.left);
     } else {
-      game.changeDirection(dy > 0 ? Direction.down : Direction.up);
+      game.queueDirection(dy > 0 ? Direction.down : Direction.up);
     }
   }
 
@@ -112,7 +113,7 @@ class _GameScreenState extends State<GameScreen> {
             children: [
               Expanded(
                 child: GestureDetector(
-                  onPanEnd: handleSwipe,
+                  onPanUpdate: handleSwipeUpdate,
                   onTap: () {
                     // Tap to restart when game over
                     if (game.isGameOver) setState(() => game.restartGame());
