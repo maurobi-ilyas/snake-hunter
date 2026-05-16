@@ -147,8 +147,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: SizedBox(
+              width: double.infinity,
+              child: Column(
+                children: [
               // Coin bar top right
               Align(
                 alignment: Alignment.centerRight,
@@ -177,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Title
               _NeonTitle().animate().fadeIn(duration: 700.ms).slideY(begin: -0.3, end: 0),
 
-              const Spacer(),
+              const SizedBox(height: 24),
 
               // Menu buttons
               _NeonMenuButton(label: '▶  PLAY',         color: const Color(0xFF00FF9D), delay: 200, onTap: () => _navigate(const GameScreen())),
@@ -192,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 14),
               _NeonMenuButton(label: '⚙  SETTINGS',     color: Colors.white54,          delay: 700, onTap: () => _navigate(const SettingsScreen())),
 
-              const Spacer(),
+              const SizedBox(height: 24),
 
               Text(
                 'v1.0.0  •  SNAKE ESCAPE EVOLUTION',
@@ -201,6 +205,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 20),
             ],
+          ),
+            ),
           ),
         ),
       ),
