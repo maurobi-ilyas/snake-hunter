@@ -1,6 +1,6 @@
 {
-    "name": "snake_hunter",
-    "short_name": "snake_hunter",
+    "name": "snake_escape_evolution",
+    "short_name": "snake_escape_evolution",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

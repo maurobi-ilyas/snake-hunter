@@ -1,35 +1,34 @@
-import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'game/engine/snake_hunter_game.dart';
-import 'ui/screens/main_menu.dart';
-import 'services/game_state.dart';
-import 'services/error_service.dart';
+import 'package:flutter/services.dart';
+
+import 'core/theme/app_theme.dart';
+import 'screens/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  ErrorService.initialize();
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => GameState(),
-      child: const SnakeHunterApp(),
+  // Lock to portrait for this game
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
     ),
   );
+  runApp(const MyApp());
 }
 
-class SnakeHunterApp extends StatelessWidget {
-  const SnakeHunterApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Snake Hunter',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-      ),
-      home: const MainMenu(),
+      title: 'Snake Escape Evolution',
+      theme: AppTheme.darkTheme,
+      home: const SplashScreen(),
     );
   }
 }
