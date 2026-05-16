@@ -13,6 +13,7 @@ class LocalStorageService {
   static const _keySound = 'sound_enabled';
   static const _keyMusic = 'music_enabled';
   static const _keyLastReward = 'last_reward_date';
+  static const _keyDifficulty = 'game_difficulty';
 
   /// Must be called once in main() before runApp.
   static Future<void> init() async {
@@ -122,6 +123,18 @@ class LocalStorageService {
   static Future<void> saveLastRewardDate(String date) async {
     final p = _prefs ?? await SharedPreferences.getInstance();
     await p.setString(_keyLastReward, date);
+    _prefs = p;
+  }
+
+  // ── DIFFICULTY ───────────────────────────────────────────
+
+  static String getDifficulty() {
+    return _prefs?.getString(_keyDifficulty) ?? 'normal'; // easy, normal, hard
+  }
+
+  static Future<void> saveDifficulty(String difficulty) async {
+    final p = _prefs ?? await SharedPreferences.getInstance();
+    await p.setString(_keyDifficulty, difficulty);
     _prefs = p;
   }
 }

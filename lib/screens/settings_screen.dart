@@ -13,12 +13,14 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _sound = true;
   bool _music = true;
+  String _difficulty = 'normal';
 
   @override
   void initState() {
     super.initState();
     _sound = LocalStorageService.getSoundEnabled();
     _music = LocalStorageService.getMusicEnabled();
+    _difficulty = LocalStorageService.getDifficulty();
   }
 
   @override
@@ -64,6 +66,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   AudioService.stopMusic();
                 }
               },
+            ),
+
+            const SizedBox(height: 12),
+
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: const Color(0xFF0D1117),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.speed_rounded, color: Colors.orangeAccent, size: 24),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Difficulty', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        Text('Game speed and AI difficulty', style: TextStyle(color: Colors.white38, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  DropdownButton<String>(
+                    value: _difficulty,
+                    dropdownColor: const Color(0xFF0D1117),
+                    underline: const SizedBox(),
+                    style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold),
+                    items: const [
+                      DropdownMenuItem(value: 'easy', child: Text('EASY')),
+                      DropdownMenuItem(value: 'normal', child: Text('NORMAL')),
+                      DropdownMenuItem(value: 'hard', child: Text('HARD')),
+                    ],
+                    onChanged: (val) async {
+                      if (val != null) {
+                        setState(() => _difficulty = val);
+                        await LocalStorageService.saveDifficulty(val);
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
 
             const SizedBox(height: 32),

@@ -47,9 +47,10 @@ class SnakeGame extends FlameGame {
   // ── Particle pulse ────────────────────────────────────────
   double _pulseT = 0.0;
 
-  // ── Skin ────────────────────────────────────────────────
+  // ── Skin & Settings ─────────────────────────────────────
   Color skinColor = Colors.greenAccent;
   Color skinDark  = const Color(0xFF1B5E20);
+  String difficulty = 'normal';
 
   // ── Notifiers ────────────────────────────────────────────
   final ValueNotifier<int> scoreNotifier = ValueNotifier(0);
@@ -82,6 +83,7 @@ class SnakeGame extends FlameGame {
   }
 
   void initializeGame() {
+    difficulty = LocalStorageService.getDifficulty();
     snake      = SnakeComponent();
     enemySnake = EnemySnakeComponent();
     boss       = BossComponent();
@@ -92,7 +94,7 @@ class SnakeGame extends FlameGame {
     stage      = 1;
     bossMode   = false;
     cameraShake = false;
-    currentSpeed  = GameConfig.gameSpeed;
+    currentSpeed  = difficulty == 'easy' ? 0.16 : (difficulty == 'hard' ? 0.09 : GameConfig.gameSpeed);
     isGameOver    = false;
     direction     = Direction.right;
     _nextDirection = null;
@@ -211,8 +213,13 @@ class SnakeGame extends FlameGame {
       levelNotifier.value = level;
     }
 
-    currentSpeed = GameConfig.gameSpeed - (snake.body.length * 0.0025);
-    if (currentSpeed < 0.05) currentSpeed = 0.05;
+    double baseSpd = GameConfig.gameSpeed;
+    double speedScale = 0.0025;
+    if (difficulty == 'easy') { baseSpd = 0.16; speedScale = 0.0015; }
+    else if (difficulty == 'hard') { baseSpd = 0.09; speedScale = 0.0035; }
+
+    currentSpeed = baseSpd - (snake.body.length * speedScale);
+    if (currentSpeed < 0.04) currentSpeed = 0.04;
     startGameLoop();
 
     final newStage = ((score ~/ 15) + 1).clamp(1, 4);
@@ -255,7 +262,10 @@ class SnakeGame extends FlameGame {
 
   void generateObstacles() {
     obstacles.clear();
-    final count = (4 + (stage - 1) * 2).clamp(4, 12);
+    int count = (4 + (stage - 1) * 2).clamp(4, 12);
+    if (difficulty == 'easy') count += 6;
+    else if (difficulty == 'hard') count += 4;
+    
     for (int i = 0; i < count; i++) {
       PositionModel pos;
       int attempts = 0;
@@ -270,7 +280,14 @@ class SnakeGame extends FlameGame {
   // ── Collisions ──────────────────────────────────────────
 
   void checkWallCollision(PositionModel head) {
-    if (head.x < 0 || head.y < 0 || head.x >= GameConfig.columns || head.y >= GameConfig.rows) gameOver();
+    if (difficulty == 'easy') {
+      if (head.x < 0) head.x = GameConfig.columns - 1;
+      else if (head.x >= GameConfig.columns) head.x = 0;
+      if (head.y < 0) head.y = GameConfig.rows - 1;
+      else if (head.y >= GameConfig.rows) head.y = 0;
+    } else {
+      if (head.x < 0 || head.y < 0 || head.x >= GameConfig.columns || head.y >= GameConfig.rows) gameOver();
+    }
   }
 
   void checkObstacleCollision(PositionModel head) {
@@ -302,7 +319,35 @@ class SnakeGame extends FlameGame {
 
   void moveEnemySnake() {
     if (isGameOver) return;
+
+    if (difficulty == 'easy' && score < 15) {
+      if (enemySnake.body.isNotEmpty) enemySnake.body.clear();
+      return;
+    }
+
+    if (enemySnake.body.isEmpty) {
+      enemySnake = EnemySnakeComponent();
+    }
+
     final head = enemySnake.body.first.copyWith();
+
+    if (difficulty == 'easy') {
+      if (random.nextInt(100) < 40) return; // 40% chance to skip turn
+      if (random.nextInt(100) < 30) {
+        // 30% chance random move
+        final dirs = [[0,-1], [0,1], [-1,0], [1,0]];
+        final d = dirs[random.nextInt(4)];
+        head.x += d[0]; head.y += d[1];
+        head.x = head.x.clamp(0, GameConfig.columns - 1);
+        head.y = head.y.clamp(0, GameConfig.rows - 1);
+        enemySnake.body.insert(0, head);
+        enemySnake.body.removeLast();
+        if (head == snake.body.first) gameOver();
+        if (head == food.position) generateFood();
+        return;
+      }
+    }
+
     if (head.x < food.position.x) head.x++;
     else if (head.x > food.position.x) head.x--;
     else if (head.y < food.position.y) head.y++;
