@@ -99,6 +99,8 @@ class SnakeGame extends FlameGame {
     direction     = Direction.right;
     _inputQueue.clear();
     _timeSinceLastTick = 0.0;
+    _prevBody.clear();
+    _prevEnemyBody.clear();
     _pulseT       = 0.0;
     scoreNotifier.value = 0;
     levelNotifier.value = 1;
@@ -262,22 +264,25 @@ class SnakeGame extends FlameGame {
     else if (typeRoll >= 6) type = FoodType.speed;
     else                    type = FoodType.normal;
 
-    PositionModel pos = PositionModel(x: 0, y: 0);
-    bool invalidPosition = true;
-    int attempts = 0;
-    while (invalidPosition && attempts < 200) {
-      pos = PositionModel(x: random.nextInt(GameConfig.columns), y: random.nextInt(GameConfig.rows));
-      invalidPosition = snake.body.contains(pos) || 
-                        enemySnake.body.contains(pos) || 
-                        obstacles.any((o) => o.position == pos) ||
-                        (bossMode && boss.position == pos);
-      attempts++;
-      if (!invalidPosition) {
-        food = FoodComponent(position: pos, type: type);
+    List<PositionModel> validPositions = [];
+    for (int r = 0; r < GameConfig.rows; r++) {
+      for (int c = 0; c < GameConfig.columns; c++) {
+        final pos = PositionModel(x: c, y: r);
+        if (!snake.body.contains(pos) &&
+            !enemySnake.body.contains(pos) &&
+            !obstacles.any((o) => o.position == pos) &&
+            !(bossMode && boss.position == pos)) {
+          validPositions.add(pos);
+        }
       }
     }
-    // Fallback if loop exhausts
-    if (invalidPosition) food = FoodComponent(position: pos, type: type);
+
+    if (validPositions.isNotEmpty) {
+      final pos = validPositions[random.nextInt(validPositions.length)];
+      food = FoodComponent(position: pos, type: type);
+    } else {
+      food = FoodComponent(position: PositionModel(x: 0, y: 0), type: type);
+    }
   }
 
   void generateObstacles() {
@@ -300,14 +305,11 @@ class SnakeGame extends FlameGame {
   // ── Collisions ──────────────────────────────────────────
 
   void checkWallCollision(PositionModel head) {
-    if (difficulty == 'easy') {
-      if (head.x < 0) head.x = GameConfig.columns - 1;
-      else if (head.x >= GameConfig.columns) head.x = 0;
-      if (head.y < 0) head.y = GameConfig.rows - 1;
-      else if (head.y >= GameConfig.rows) head.y = 0;
-    } else {
-      if (head.x < 0 || head.y < 0 || head.x >= GameConfig.columns || head.y >= GameConfig.rows) gameOver();
-    }
+    if (head.x < 0) head.x = GameConfig.columns - 1;
+    else if (head.x >= GameConfig.columns) head.x = 0;
+    
+    if (head.y < 0) head.y = GameConfig.rows - 1;
+    else if (head.y >= GameConfig.rows) head.y = 0;
   }
 
   void checkObstacleCollision(PositionModel head) {
@@ -464,10 +466,11 @@ class SnakeGame extends FlameGame {
 
   void drawSnake(Canvas canvas) {
     double tProg = (_timeSinceLastTick / currentSpeed).clamp(0.0, 1.0);
+    final List<PositionModel> currentBody = snake.body.toList();
 
-    for (int i = snake.body.length - 1; i >= 0; i--) {
-      final part = snake.body[i];
-      final t = i / snake.body.length.clamp(1, 999);
+    for (int i = currentBody.length - 1; i >= 0; i--) {
+      final part = currentBody[i];
+      final t = i / currentBody.length.clamp(1, 999);
       final color = Color.lerp(skinColor, skinDark, t)!;
       double x = part.x * GameConfig.cellSize + GameConfig.cellSize / 2;
       double y = part.y * GameConfig.cellSize + GameConfig.cellSize / 2;
@@ -504,10 +507,11 @@ class SnakeGame extends FlameGame {
 
   void drawEnemySnake(Canvas canvas) {
     double tProg = (_timeSinceLastTick / currentSpeed).clamp(0.0, 1.0);
+    final List<PositionModel> currentEnemyBody = enemySnake.body.toList();
 
-    for (int i = enemySnake.body.length - 1; i >= 0; i--) {
-      final part = enemySnake.body[i];
-      final t = i / enemySnake.body.length.clamp(1, 999);
+    for (int i = currentEnemyBody.length - 1; i >= 0; i--) {
+      final part = currentEnemyBody[i];
+      final t = i / currentEnemyBody.length.clamp(1, 999);
       final color = Color.lerp(Colors.orangeAccent, const Color(0xFF7B3F00), t)!;
       double x = part.x * GameConfig.cellSize + GameConfig.cellSize / 2;
       double y = part.y * GameConfig.cellSize + GameConfig.cellSize / 2;
